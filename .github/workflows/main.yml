@@ -9,7 +9,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -17,14 +24,23 @@ jobs:
           flutter-version: '3.19.6'
           channel: 'stable'
 
-      - name: Get Dependencies
+      - name: Recreate Flutter Android Structure
+        run: |
+          mkdir temp_app
+          cd temp_app
+          flutter create --org com.pistachio pistachio_app
+          cp -r android ../
+          cd ..
+          rm -rf temp_app
+
+      - name: Install Dependencies
         run: flutter pub get
 
-      - name: Build APK
+      - name: Build Android APK
         run: flutter build apk --release
 
-      - name: Upload APK
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: my-pistachio-app
+          name: Pistachio-Orchard-App
           path: build/app/outputs/flutter-apk/app-release.apk
