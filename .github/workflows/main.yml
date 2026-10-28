@@ -26,12 +26,12 @@ jobs:
 
       - name: Recreate Flutter Android Structure
         run: |
-          mkdir temp_app
-          cd temp_app
+          mkdir temp_build
+          cd temp_build
           flutter create --org com.pistachio pistachio_app
-          cp -r android ../
+          cp -r pistachio_app/android ../
           cd ..
-          rm -rf temp_app
+          rm -rf temp_build
 
       - name: Install Dependencies
         run: flutter pub get
