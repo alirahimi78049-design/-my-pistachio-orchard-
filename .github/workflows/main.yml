@@ -15,7 +15,7 @@ jobs:
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
+          distribution: 'temurin'
           java-version: '17'
 
       - name: Set up Flutter
@@ -27,10 +27,12 @@ jobs:
       - name: Build Clean Flutter App
         run: |
           flutter create --org com.pistachio pistachio_app
-          cp pubspec.yaml pistachio_app/
-          cp lib/main.dart pistachio_app/lib/
           cd pistachio_app
-          flutter pub get
+          flutter pub add flutter_localizations --sdk=flutter
+          flutter pub add intl
+          flutter pub add shamsi_date
+          flutter pub add google_fonts
+          cp ../lib/main.dart lib/main.dart
           flutter build apk --debug
 
       - name: Upload APK Artifact
