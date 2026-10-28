@@ -24,23 +24,17 @@ jobs:
           flutter-version: '3.19.6'
           channel: 'stable'
 
-      - name: Prepare Android Project
+      - name: Build Clean Flutter App
         run: |
-          mkdir temp_app
-          cd temp_app
           flutter create --org com.pistachio pistachio_app
-          cp -r pistachio_app/android ../
-          cd ..
-          rm -rf temp_app
-
-      - name: Get Dependencies
-        run: flutter pub get
-
-      - name: Build Android APK
-        run: flutter build apk --debug
+          cp pubspec.yaml pistachio_app/
+          cp lib/main.dart pistachio_app/lib/
+          cd pistachio_app
+          flutter pub get
+          flutter build apk --debug
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Pistachio-Orchard-App
-          path: build/app/outputs/flutter-apk/app-debug.apk
+          path: pistachio_app/build/app/outputs/flutter-apk/app-debug.apk
