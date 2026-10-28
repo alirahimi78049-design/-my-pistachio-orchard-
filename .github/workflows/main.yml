@@ -26,13 +26,17 @@ jobs:
 
       - name: Build Clean Flutter App
         run: |
+          # تبدیل خودکار Lib به lib در صورت وجود
+          if [ -d "Lib" ]; then
+            mv Lib lib
+          fi
           flutter create --org com.pistachio pistachio_app
           cd pistachio_app
           flutter pub add flutter_localizations --sdk=flutter
           flutter pub add intl
           flutter pub add shamsi_date
           flutter pub add google_fonts
-          cp ../lib/main.dart lib/main.dart
+          cp ../lib/*.dart lib/
           flutter build apk --debug
 
       - name: Upload APK Artifact
