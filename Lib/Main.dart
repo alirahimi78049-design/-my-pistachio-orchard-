@@ -6,16 +6,14 @@ void main() {
   runApp(const PistachioApp());
 }
 
-// ----------------- تم و رنگ‌بندی طبق سند PRD -----------------
 class AppTheme {
-  static const Color creamBackground = Color(0xFFFBF9F1); // پس‌زمینه شیری ملایم
-  static const Color pistachioLight = Color(0xFFE8F5E9); // سبز پسته ای بسیار کم‌رنگ
-  static const Color darkGreenBorder = Color(0xFF2E7D32); // حاشیه سبز پررنگ
-  static const Color buttonGreen = Color(0xFF388E3C); // دکمه‌های سبز
-  static const Color darkBrownText = Color(0xFF3E2723); // متن قهوه‌ای بسیار تیره
+  static const Color creamBackground = Color(0xFFFBF9F1);
+  static const Color pistachioLight = Color(0xFFE8F5E9);
+  static const Color darkGreenBorder = Color(0xFF2E7D32);
+  static const Color buttonGreen = Color(0xFF388E3C);
+  static const Color darkBrownText = Color(0xFF3E2723);
 }
 
-// مدل‌های داده‌ای پروژه
 class TreeRecord {
   String countingType;
   int treeCount;
@@ -61,7 +59,7 @@ class HistoryRecord {
   final String month;
   final TreeRecord tree;
   final LandDetailsRecord details;
-  String consultantStatus; // "در حال بررسی" یا "انجام شده"
+  String consultantStatus;
 
   HistoryRecord({
     required this.id,
@@ -77,8 +75,8 @@ class HistoryRecord {
 class Land {
   final String id;
   String name;
-  double area; // بر حسب متر مربع به صورت استاندارد
-  String selectedUnit; // "متر مربع" یا "هکتار"
+  double area;
+  String selectedUnit;
   List<String> treeTypes;
   bool isDeleted;
 
@@ -92,7 +90,6 @@ class Land {
   });
 }
 
-// ----------------- اپلیکیشن اصلی -----------------
 class PistachioApp extends StatelessWidget {
   const PistachioApp({super.key});
 
@@ -121,7 +118,6 @@ class PistachioApp extends StatelessWidget {
   }
 }
 
-// حافظه موقت مشترک
 class AppData {
   static List<Land> lands = [
     Land(
@@ -137,7 +133,6 @@ class AppData {
   static int selectedYear = 1404;
 }
 
-// ----------------- صفحه مدیریت ناوبری اصلی و سوییچ نقش‌ها -----------------
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
 
@@ -146,7 +141,7 @@ class MainNavigationScreen extends StatefulWidget {
 }
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
-  bool isConsultant = false; // جابجایی بین حالت باغدار و مشاور کشاورزی
+  bool isConsultant = false;
 
   @override
   Widget build(BuildContext context) {
@@ -182,7 +177,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     );
   }
 
-  // استوری 11: منوی کشویی ۵ گزینه‌ای باغدار
   Widget _buildFarmerDrawer() {
     return Drawer(
       backgroundColor: AppTheme.creamBackground,
@@ -226,7 +220,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     );
   }
 
-  // استوری 12: منوی کشویی ۲ گزینه‌ای مشاور
   Widget _buildConsultantDrawer() {
     return Drawer(
       backgroundColor: AppTheme.creamBackground,
@@ -310,7 +303,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   }
 }
 
-// ----------------- استوری 1 و 2: داشبورد باغدار -----------------
 class FarmerDashboard extends StatelessWidget {
   final VoidCallback onRefresh;
   const FarmerDashboard({super.key, required this.onRefresh});
@@ -323,7 +315,6 @@ class FarmerDashboard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          // استوری 2: هدر بالا سمت چپ برای انتخاب سال و افزودن زمین
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -360,8 +351,6 @@ class FarmerDashboard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-
-          // لیست کارت‌های شیشه‌ای زمین‌ها
           if (activeLands.isEmpty)
             const Center(
               child: Padding(
@@ -428,7 +417,6 @@ class FarmerDashboard extends StatelessWidget {
   }
 }
 
-// کامپوننت کارت زمین با طراحی Glassmorphism طبق سند
 class GlassLandCard extends StatelessWidget {
   final Land land;
   final VoidCallback onSelfDeclare;
@@ -517,7 +505,6 @@ class GlassLandCard extends StatelessWidget {
   }
 }
 
-// ----------------- استوری 3: ثبت زمین جدید -----------------
 class AddLandScreen extends StatefulWidget {
   final VoidCallback onSaved;
   const AddLandScreen({super.key, required this.onSaved});
@@ -682,7 +669,6 @@ class _AddLandScreenState extends State<AddLandScreen> {
   }
 }
 
-// ----------------- استوری 4: انتخاب ماه و خوداظهاری -----------------
 class SelfDeclarationFlowScreen extends StatefulWidget {
   final Land land;
   const SelfDeclarationFlowScreen({super.key, required this.land});
@@ -834,7 +820,6 @@ class _SelfDeclarationFlowScreenState extends State<SelfDeclarationFlowScreen> {
   }
 }
 
-// ----------------- استوری 5: فرم جزئیات درختان و آزمایش برگ -----------------
 class TreeDetailsFormScreen extends StatefulWidget {
   final TreeRecord? initialRecord;
   const TreeDetailsFormScreen({super.key, this.initialRecord});
@@ -1019,7 +1004,6 @@ class _TreeDetailsFormScreenState extends State<TreeDetailsFormScreen> {
   }
 }
 
-// ----------------- استوری 6: فرم اطلاعات زمین (خاک، آبیاری و آب) -----------------
 class LandDetailsFormScreen extends StatefulWidget {
   final LandDetailsRecord? initialRecord;
   const LandDetailsFormScreen({super.key, this.initialRecord});
@@ -1190,7 +1174,6 @@ class _LandDetailsFormScreenState extends State<LandDetailsFormScreen> {
   }
 }
 
-// ----------------- استوری 7: مدیریت جزئیات زمین -----------------
 class LandDetailScreen extends StatelessWidget {
   final Land land;
   const LandDetailScreen({super.key, required this.land});
@@ -1234,7 +1217,6 @@ class LandDetailScreen extends StatelessWidget {
   }
 }
 
-// ----------------- استوری 9 و 10: تاریخچه جامع و ویرایش -----------------
 class ComprehensiveHistoryScreen extends StatefulWidget {
   final String? landFilter;
   const ComprehensiveHistoryScreen({super.key, this.landFilter});
@@ -1327,7 +1309,7 @@ class _ComprehensiveHistoryScreenState extends State<ComprehensiveHistoryScreen>
                 );
                 if (updated != null) {
                   setState(() {
-                    record.chemicalElements.addAll(updated.chemicalElements);
+                    record.tree.chemicalElements.addAll(updated.chemicalElements);
                   });
                 }
               },
@@ -1355,7 +1337,6 @@ class _ComprehensiveHistoryScreenState extends State<ComprehensiveHistoryScreen>
   }
 }
 
-// ----------------- استوری 13: کارتابل مشاور کشاورزی -----------------
 class ConsultantDashboard extends StatefulWidget {
   const ConsultantDashboard({super.key});
 
