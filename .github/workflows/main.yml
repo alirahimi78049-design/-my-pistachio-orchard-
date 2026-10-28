@@ -8,6 +8,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -26,7 +28,6 @@ jobs:
 
       - name: Build Clean Flutter App
         run: |
-          # تبدیل خودکار Lib به lib در صورت وجود
           if [ -d "Lib" ]; then
             mv Lib lib
           fi
@@ -38,9 +39,13 @@ jobs:
           flutter pub add google_fonts
           cp ../lib/*.dart lib/
           flutter build apk --debug
+          mv build/app/outputs/flutter-apk/app-debug.apk ../PistachioApp.apk
 
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v4
+      - name: Create Release and Upload APK
+        uses: softprops/action-gh-release@v1
         with:
-          name: Pistachio-Orchard-App
-          path: pistachio_app/build/app/outputs/flutter-apk/app-debug.apk
+          tag_name: v1.0.0
+          name: Pistachio Orchard App v1.0
+          files: PistachioApp.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
