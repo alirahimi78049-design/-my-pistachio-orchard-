@@ -20,7 +20,6 @@ class PistachioApp extends StatelessWidget {
           seedColor: const Color(0xFF5A8F53),
           primary: const Color(0xFF4A7C43),
           secondary: const Color(0xFF6D4C41),
-          surface: Colors.white.withOpacity(0.85),
         ),
         fontFamily: 'Tahoma',
         appBarTheme: const AppBarTheme(
@@ -227,20 +226,23 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
               _drawerItem(Icons.landscape, 'زمین‌های من', () => Navigator.pop(context)),
               _drawerItem(Icons.assignment, 'خوداظهاری', () {
                 Navigator.pop(context);
-                if (lands.where((l) => !l.isDeleted).isNotEmpty) {
-                  _promptSelfDeclaration(lands.firstWhere((l) => !l.isDeleted));
+                final nonDeleted = lands.where((l) => !l.isDeleted).toList();
+                if (nonDeleted.isNotEmpty) {
+                  _promptSelfDeclaration(nonDeleted.first);
                 }
               }),
               _drawerItem(Icons.nature_people, 'جزئیات زمین من', () {
                 Navigator.pop(context);
-                if (lands.where((l) => !l.isDeleted).isNotEmpty) {
-                  _openSelfDeclarationForm(lands.firstWhere((l) => !l.isDeleted));
+                final nonDeleted = lands.where((l) => !l.isDeleted).toList();
+                if (nonDeleted.isNotEmpty) {
+                  _openSelfDeclarationForm(nonDeleted.first);
                 }
               }),
               _drawerItem(Icons.history_edu, 'تاریخچه من', () {
                 Navigator.pop(context);
-                if (lands.where((l) => !l.isDeleted).isNotEmpty) {
-                  _openHistoryView(lands.firstWhere((l) => !l.isDeleted));
+                final nonDeleted = lands.where((l) => !l.isDeleted).toList();
+                if (nonDeleted.isNotEmpty) {
+                  _openHistoryView(nonDeleted.first);
                 }
               }),
             ] else ...[
@@ -478,7 +480,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     final areaCtrl = TextEditingController();
     String selectedUnit = 'هکتار';
     final List<String> availableVarieties = ['اکبری', 'احمد آقایی', 'اوحدی', 'کله‌قوچی', 'فندقی', 'بادامی'];
-    final List<String> selectedVarieties = [];
+    final List<String> selectedVarieties = <String>[];
 
     showModalBottomSheet(
       context: context,
@@ -537,7 +539,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                   const Text('نوع درختان (چند انتخابی):', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                   Wrap(
                     spacing: 8,
-                    children: availableVarieties.map((v) {
+                    children: availableVarieties.map<Widget>((v) {
                       final isSelected = selectedVarieties.contains(v);
                       return FilterChip(
                         label: Text(v),
@@ -732,15 +734,15 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                               cells: [
                                 DataCell(Text((idx + 1).toString())),
                                 DataCell(Text(r.month)),
-                                DataCell(Text('${r.variety} (${r.treeCount}${r.countType})')),
-                                DataCell(Text('${r.ageGroup} -${r.treeAge} ساله')),
+                                DataCell(Text('${r.variety} (${r.treeCount} ${r.countType})')),
+                                DataCell(Text('${r.ageGroup} - ${r.treeAge} ساله')),
                                 DataCell(Text('N:${r.leafElements['N'] ?? '-'}% | P:${r.leafElements['P'] ?? '-'}% | K:${r.leafElements['K'] ?? '-'}%')),
                                 DataCell(Text('Ec:${r.soilElements['Ec'] ?? '-'} | pH:${r.soilElements['pH'] ?? '-'} | SAR:${r.soilElements['SAR'] ?? '-'}')),
                                 DataCell(Text('Ec:${r.waterElements['Ec'] ?? '-'} | TDS:${r.waterElements['TDS'] ?? '-'}')),
                                 DataCell(
                                   Wrap(
                                     spacing: 4,
-                                    children: r.irrigationDates.map((d) => Chip(
+                                    children: r.irrigationDates.map<Widget>((d) => Chip(
                                       label: Text(d, style: const TextStyle(fontSize: 10)),
                                       padding: EdgeInsets.zero,
                                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -795,7 +797,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                   DataColumn(label: Text('جزئیات', style: TextStyle(fontWeight: FontWeight.bold))),
                   DataColumn(label: Text('عملیات بررسی', style: TextStyle(fontWeight: FontWeight.bold))),
                 ],
-                rows: consultantList.map((c) {
+                rows: consultantList.map<DataRow>((c) {
                   return DataRow(cells: [
                     DataCell(Text(c.rowNum)),
                     DataCell(Text(c.farmerName)),
@@ -905,7 +907,7 @@ class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> with Sing
   String soilType = 'رسی';
   final soilDateCtrl = TextEditingController(text: '1404/07/10');
   final Map<String, TextEditingController> soilCtrls = {};
-  final List<String> irrigationDates = ['1404/07/04', '1404/07/18'];
+  final List<String> irrigationDates = <String>['1404/07/04', '1404/07/18'];
   final waterDateCtrl = TextEditingController(text: '1404/07/12');
   final Map<String, TextEditingController> waterCtrls = {};
 
@@ -1071,7 +1073,7 @@ class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> with Sing
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: leafCtrls.entries.map((e) {
+            children: leafCtrls.entries.map<Widget>((e) {
               final isPpm = ['B', 'Cu', 'Zn', 'Fe', 'Mn'].contains(e.key);
               return SizedBox(
                 width: 105,
@@ -1124,7 +1126,7 @@ class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> with Sing
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: soilCtrls.entries.map((e) {
+            children: soilCtrls.entries.map<Widget>((e) {
               return SizedBox(
                 width: 105,
                 child: TextField(
@@ -1143,7 +1145,7 @@ class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> with Sing
           const SizedBox(height: 12),
           Wrap(
             spacing: 8,
-            children: waterCtrls.entries.map((e) {
+            children: waterCtrls.entries.map<Widget>((e) {
               return SizedBox(
                 width: 110,
                 child: TextField(
@@ -1151,4 +1153,23 @@ class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> with Sing
                   decoration: InputDecoration(
                     labelText: e.key,
                     border: const OutlineInputBorder(),
-                    
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _submitRecord() {
+    final isDuplicate = widget.existingRecords.any((r) =>
+        r.landId == widget.land.id &&
+        r.solarYear == widget.year &&
+        r.month == selectedMonth &&
+        r.id != widget.recordToEdit?.id);
+
+    if (isDuplicate) {
+      
