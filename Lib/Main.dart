@@ -1,93 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() {
   runApp(const PistachioApp());
-}
-
-class AppTheme {
-  static const Color creamBackground = Color(0xFFFBF9F1);
-  static const Color pistachioLight = Color(0xFFE8F5E9);
-  static const Color darkGreenBorder = Color(0xFF2E7D32);
-  static const Color buttonGreen = Color(0xFF388E3C);
-  static const Color darkBrownText = Color(0xFF3E2723);
-}
-
-class TreeRecord {
-  String countingType;
-  int treeCount;
-  String treeType;
-  String ageGroup;
-  int exactAge;
-  String leafTestDate;
-  Map<String, String> chemicalElements;
-
-  TreeRecord({
-    required this.countingType,
-    required this.treeCount,
-    required this.treeType,
-    required this.ageGroup,
-    required this.exactAge,
-    required this.leafTestDate,
-    required this.chemicalElements,
-  });
-}
-
-class LandDetailsRecord {
-  String soilType;
-  String soilTestDate;
-  Map<String, String> soilParams;
-  List<String> irrigationDates;
-  String waterTestDate;
-  Map<String, String> waterParams;
-
-  LandDetailsRecord({
-    required this.soilType,
-    required this.soilTestDate,
-    required this.soilParams,
-    required this.irrigationDates,
-    required this.waterTestDate,
-    required this.waterParams,
-  });
-}
-
-class HistoryRecord {
-  final String id;
-  final String landName;
-  final int year;
-  final String month;
-  final TreeRecord tree;
-  final LandDetailsRecord details;
-  String consultantStatus;
-
-  HistoryRecord({
-    required this.id,
-    required this.landName,
-    required this.year,
-    required this.month,
-    required this.tree,
-    required this.details,
-    this.consultantStatus = "در حال بررسی",
-  });
-}
-
-class Land {
-  final String id;
-  String name;
-  double area;
-  String selectedUnit;
-  List<String> treeTypes;
-  bool isDeleted;
-
-  Land({
-    required this.id,
-    required this.name,
-    required this.area,
-    required this.selectedUnit,
-    required this.treeTypes,
-    this.isDeleted = false,
-  });
 }
 
 class PistachioApp extends StatelessWidget {
@@ -96,359 +11,350 @@ class PistachioApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'مدیریت زمین های باغداری پسته',
+      title: 'سامانه مدیریت باغ پسته',
       debugShowCheckedModeBanner: false,
-      locale: const Locale('fa', 'IR'),
-      supportedLocales: const [Locale('fa', 'IR')],
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
       theme: ThemeData(
-        scaffoldBackgroundColor: AppTheme.creamBackground,
-        fontFamily: 'Tahoma',
+        useMaterial3: true,
+        scaffoldBackgroundColor: const Color(0xFFF9F6F0),
         colorScheme: ColorScheme.fromSeed(
-          seedColor: AppTheme.darkGreenBorder,
-          primary: AppTheme.buttonGreen,
+          seedColor: const Color(0xFF5A8F53),
+          primary: const Color(0xFF4A7C43),
+          secondary: const Color(0xFF6D4C41),
+          surface: Colors.white.withOpacity(0.85),
+        ),
+        fontFamily: 'Tahoma',
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF4A7C43),
+          foregroundColor: Colors.white,
+          centerTitle: true,
+          elevation: 2,
         ),
       ),
-      home: const MainNavigationScreen(),
+      home: const MainNavigationShell(),
     );
   }
 }
 
-class AppData {
-  static List<Land> lands = [
-    Land(
-      id: '1',
+class OrchardLand {
+  final String id;
+  String name;
+  String unit;
+  double areaValue;
+  double standardAreaSquareMeters;
+  List<String> treeVarieties;
+  bool isDeleted;
+
+  OrchardLand({
+    required this.id,
+    required this.name,
+    required this.unit,
+    required this.areaValue,
+    required this.standardAreaSquareMeters,
+    required this.treeVarieties,
+    this.isDeleted = false,
+  });
+}
+
+class MonthlyRecord {
+  final String id;
+  final String landId;
+  final int solarYear;
+  final String month;
+  String countType;
+  int treeCount;
+  String variety;
+  String ageGroup;
+  int treeAge;
+  List<String> uploadedImages;
+  String leafTestDate;
+  Map<String, String> leafElements;
+  String soilType;
+  String soilTestDate;
+  Map<String, String> soilElements;
+  List<String> irrigationDates;
+  String waterTestDate;
+  Map<String, String> waterElements;
+
+  MonthlyRecord({
+    required this.id,
+    required this.landId,
+    required this.solarYear,
+    required this.month,
+    required this.countType,
+    required this.treeCount,
+    required this.variety,
+    required this.ageGroup,
+    required this.treeAge,
+    required this.uploadedImages,
+    required this.leafTestDate,
+    required this.leafElements,
+    required this.soilType,
+    required this.soilTestDate,
+    required this.soilElements,
+    required this.irrigationDates,
+    required this.waterTestDate,
+    required this.waterElements,
+  });
+}
+
+class ConsultantItem {
+  final String rowNum;
+  final String farmerName;
+  final String farmerCode;
+  final String landId;
+  final String landName;
+  String status;
+
+  ConsultantItem({
+    required this.rowNum,
+    required this.farmerName,
+    required this.farmerCode,
+    required this.landId,
+    required this.landName,
+    required this.status,
+  });
+}
+
+class MainNavigationShell extends StatefulWidget {
+  const MainNavigationShell({super.key});
+
+  @override
+  State<MainNavigationShell> createState() => _MainNavigationShellState();
+}
+
+class _MainNavigationShellState extends State<MainNavigationShell> {
+  bool isConsultantMode = false;
+  int selectedYear = 1404;
+  final List<int> availableYears = [1402, 1403, 1404, 1405];
+
+  final List<OrchardLand> lands = [
+    OrchardLand(
+      id: 'L-101',
       name: 'باغ پسته مرکزی',
-      area: 25000,
-      selectedUnit: 'هکتار',
-      treeTypes: ['اکبری', 'احمد آقایی'],
+      unit: 'هکتار',
+      areaValue: 2.5,
+      standardAreaSquareMeters: 25000.0,
+      treeVarieties: ['اکبری', 'احمد آقایی'],
+    ),
+    OrchardLand(
+      id: 'L-102',
+      name: 'قطعه غربی',
+      unit: 'متر مربع',
+      areaValue: 7500.0,
+      standardAreaSquareMeters: 7500.0,
+      treeVarieties: ['کله‌قوچی', 'فندقی'],
     ),
   ];
 
-  static List<HistoryRecord> histories = [];
-  static int selectedYear = 1404;
-}
-
-class MainNavigationScreen extends StatefulWidget {
-  const MainNavigationScreen({super.key});
-
-  @override
-  State<MainNavigationScreen> createState() => _MainNavigationScreenState();
-}
-
-class _MainNavigationScreenState extends State<MainNavigationScreen> {
-  bool isConsultant = false;
+  final List<MonthlyRecord> records = [];
+  final List<ConsultantItem> consultantList = [
+    ConsultantItem(
+      rowNum: '۱',
+      farmerName: 'علی احمدی',
+      farmerCode: 'BA-9021',
+      landId: 'L-101',
+      landName: 'باغ پسته مرکزی',
+      status: 'در حال بررسی',
+    ),
+    ConsultantItem(
+      rowNum: '۲',
+      farmerName: 'رضا حسینی',
+      farmerCode: 'BA-8412',
+      landId: 'L-102',
+      landName: 'قطعه غربی',
+      status: 'انجام شده',
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: AppTheme.pistachioLight,
-        title: Text(
-          isConsultant ? 'پنل مشاور کشاورزی' : 'سامانه مدیریت باغ پسته',
-          style: const TextStyle(color: AppTheme.darkBrownText, fontWeight: FontWeight.bold),
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(isConsultantMode ? 'کارتابل مشاور کشاورزی' : 'سامانه مدیریت باغات پسته'),
+          actions: [
+            Row(
+              children: [
+                Text(isConsultantMode ? 'مشاور' : 'باغدار', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                Switch(
+                  value: isConsultantMode,
+                  activeColor: Colors.amberAccent,
+                  inactiveThumbColor: Colors.white,
+                  onChanged: (val) {
+                    setState(() {
+                      isConsultantMode = val;
+                    });
+                  },
+                ),
+              ],
+            )
+          ],
         ),
-        actions: [
-          Row(
-            children: [
-              Text(
-                isConsultant ? 'مشاور' : 'باغدار',
-                style: const TextStyle(color: AppTheme.darkBrownText, fontSize: 12),
-              ),
-              Switch(
-                value: isConsultant,
-                activeColor: AppTheme.buttonGreen,
-                onChanged: (val) {
-                  setState(() {
-                    isConsultant = val;
-                  });
-                },
-              ),
-            ],
-          )
-        ],
+        drawer: _buildDrawer(),
+        body: isConsultantMode ? _buildConsultantView() : _buildFarmerView(),
       ),
-      endDrawer: isConsultant ? _buildConsultantDrawer() : _buildFarmerDrawer(),
-      body: isConsultant ? const ConsultantDashboard() : FarmerDashboard(onRefresh: () => setState(() {})),
     );
   }
 
-  Widget _buildFarmerDrawer() {
+  Widget _buildDrawer() {
     return Drawer(
-      backgroundColor: AppTheme.creamBackground,
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          const DrawerHeader(
-            decoration: BoxDecoration(color: AppTheme.pistachioLight),
-            child: Center(
-              child: Text(
-                'منوی مدیریت باغدار',
-                style: TextStyle(fontSize: 18, color: AppTheme.darkBrownText, fontWeight: FontWeight.bold),
+      child: Container(
+        color: const Color(0xFFF9F6F0),
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            DrawerHeader(
+              decoration: const BoxDecoration(color: Color(0xFF4A7C43)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.eco, color: Colors.white, size: 45),
+                  const SizedBox(height: 10),
+                  Text(
+                    isConsultantMode ? 'پنل اختصاصی مشاور' : 'پنل اختصاصی باغدار',
+                    style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ],
               ),
             ),
-          ),
-          _drawerItem('افزودن زمین', () {
-            Navigator.pop(context);
-            _navigateToAddLand();
-          }),
-          _drawerItem('زمین‌های من', () {
-            Navigator.pop(context);
-          }),
-          _drawerItem('خوداظهاری', () {
-            Navigator.pop(context);
-            if (AppData.lands.isNotEmpty) {
-              _startSelfDeclaration(AppData.lands.first);
-            }
-          }),
-          _drawerItem('جزئیات زمین من', () {
-            Navigator.pop(context);
-            if (AppData.lands.isNotEmpty) {
-              _navigateToDetails(AppData.lands.first);
-            }
-          }),
-          _drawerItem('تاریخچه من', () {
-            Navigator.pop(context);
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const ComprehensiveHistoryScreen()));
-          }),
-        ],
+            if (!isConsultantMode) ...[
+              _drawerItem(Icons.add_location_alt, 'افزودن زمین', () {
+                Navigator.pop(context);
+                _openAddLandDialog();
+              }),
+              _drawerItem(Icons.landscape, 'زمین‌های من', () => Navigator.pop(context)),
+              _drawerItem(Icons.assignment, 'خوداظهاری', () {
+                Navigator.pop(context);
+                if (lands.where((l) => !l.isDeleted).isNotEmpty) {
+                  _promptSelfDeclaration(lands.firstWhere((l) => !l.isDeleted));
+                }
+              }),
+              _drawerItem(Icons.nature_people, 'جزئیات زمین من', () {
+                Navigator.pop(context);
+                if (lands.where((l) => !l.isDeleted).isNotEmpty) {
+                  _openSelfDeclarationForm(lands.firstWhere((l) => !l.isDeleted));
+                }
+              }),
+              _drawerItem(Icons.history_edu, 'تاریخچه من', () {
+                Navigator.pop(context);
+                if (lands.where((l) => !l.isDeleted).isNotEmpty) {
+                  _openHistoryView(lands.firstWhere((l) => !l.isDeleted));
+                }
+              }),
+            ] else ...[
+              _drawerItem(Icons.people_alt, 'کشاورزان من', () => Navigator.pop(context)),
+              _drawerItem(Icons.notifications_active, 'اعلان‌های من', () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('اعلان جدیدی وجود ندارد.')),
+                );
+              }),
+            ]
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildConsultantDrawer() {
-    return Drawer(
-      backgroundColor: AppTheme.creamBackground,
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          const DrawerHeader(
-            decoration: BoxDecoration(color: AppTheme.pistachioLight),
-            child: Center(
-              child: Text(
-                'منوی مشاور کشاورزی',
-                style: TextStyle(fontSize: 18, color: AppTheme.darkBrownText, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-          _drawerItem('کشاورزهای من', () {
-            Navigator.pop(context);
-          }),
-          _drawerItem('اعلان‌های من', () {
-            Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('در فیچرهای بعدی ارائه می‌شود')),
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  Widget _drawerItem(String title, VoidCallback onTap) {
+  Widget _drawerItem(IconData icon, String title, VoidCallback onTap) {
     return ListTile(
-      title: Text(title, style: const TextStyle(color: AppTheme.darkBrownText, fontWeight: FontWeight.w600)),
-      trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: AppTheme.darkGreenBorder),
+      leading: Icon(icon, color: const Color(0xFF4A7C43)),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF333333))),
       onTap: onTap,
     );
   }
 
-  void _navigateToAddLand() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => AddLandScreen(onSaved: () => setState(() {}))),
-    );
-  }
-
-  void _navigateToDetails(Land land) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => LandDetailScreen(land: land)),
-    );
-  }
-
-  void _startSelfDeclaration(Land land) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.creamBackground,
-        title: const Text('فرایند خوداظهاری', style: TextStyle(color: AppTheme.darkBrownText)),
-        content: const Text(
-          'آیا مایل به تکمیل اطلاعات ۶ ماهه گذشته خود هستید؟',
-          style: TextStyle(color: AppTheme.darkBrownText),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('خیر', style: TextStyle(color: Colors.red)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.buttonGreen),
-            onPressed: () {
-              Navigator.pop(ctx);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => SelfDeclarationFlowScreen(land: land)),
-              );
-            },
-            child: const Text('بله', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class FarmerDashboard extends StatelessWidget {
-  final VoidCallback onRefresh;
-  const FarmerDashboard({super.key, required this.onRefresh});
-
-  @override
-  Widget build(BuildContext context) {
-    final activeLands = AppData.lands.where((l) => !l.isDeleted).toList();
+  Widget _buildFarmerView() {
+    final activeLands = lands.where((l) => !l.isDeleted).toList();
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16.0),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFF5A8F53)),
+                ),
+                child: Row(
+                  children: [
+                    const Text('سال زراعی: ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    DropdownButton<int>(
+                      value: selectedYear,
+                      underline: const SizedBox(),
+                      items: availableYears.map((int y) {
+                        return DropdownMenuItem<int>(
+                          value: y,
+                          child: Text(y.toString(), style: const TextStyle(fontWeight: FontWeight.bold)),
+                        );
+                      }).toList(),
+                      onChanged: (newYear) {
+                        if (newYear != null) {
+                          setState(() {
+                            selectedYear = newYear;
+                          });
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.buttonGreen,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  backgroundColor: const Color(0xFF4A7C43),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 ),
-                icon: const Icon(Icons.add, color: Colors.white, size: 18),
-                label: const Text('افزودن زمین', style: TextStyle(color: Colors.white)),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => AddLandScreen(onSaved: onRefresh)),
-                  );
-                },
-              ),
-              DropdownButton<int>(
-                value: AppData.selectedYear,
-                dropdownColor: AppTheme.pistachioLight,
-                items: [1402, 1403, 1404, 1405].map((y) {
-                  return DropdownMenuItem<int>(
-                    value: y,
-                    child: Text('سال $y', style: const TextStyle(color: AppTheme.darkBrownText, fontWeight: FontWeight.bold)),
-                  );
-                }).toList(),
-                onChanged: (newYear) {
-                  if (newYear != null) {
-                    AppData.selectedYear = newYear;
-                    onRefresh();
-                  }
-                },
+                onPressed: _openAddLandDialog,
+                icon: const Icon(Icons.add, size: 20),
+                label: const Text('افزودن زمین', style: TextStyle(fontWeight: FontWeight.bold)),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
+          const Text(
+            'زمین‌های ثبت‌شده',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF4E342E)),
+          ),
+          const SizedBox(height: 12),
           if (activeLands.isEmpty)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.only(top: 40),
-                child: Text('هیچ زمینی ثبت نشده است.', style: TextStyle(color: AppTheme.darkBrownText)),
-              ),
-            )
+            _buildEmptyState('هیچ زمینی برای این حساب ثبت نشده است.')
           else
             ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: activeLands.length,
-              itemBuilder: (ctx, index) {
-                final land = activeLands[index];
-                return GlassLandCard(
-                  land: land,
-                  onSelfDeclare: () {
-                    showDialog(
-                      context: context,
-                      builder: (dCtx) => AlertDialog(
-                        backgroundColor: AppTheme.creamBackground,
-                        content: const Text(
-                          'آیا مایل به تکمیل اطلاعات ۶ ماهه گذشته خود هستید؟',
-                          style: TextStyle(color: AppTheme.darkBrownText),
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(dCtx),
-                            child: const Text('خیر', style: TextStyle(color: Colors.red)),
-                          ),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.buttonGreen),
-                            onPressed: () {
-                              Navigator.pop(dCtx);
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (_) => SelfDeclarationFlowScreen(land: land)),
-                              );
-                            },
-                            child: const Text('بله', style: TextStyle(color: Colors.white)),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                  onDetails: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => LandDetailScreen(land: land)),
-                    );
-                  },
-                  onHistory: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => ComprehensiveHistoryScreen(landFilter: land.name)),
-                    );
-                  },
-                );
+              itemBuilder: (context, index) {
+                return _buildGlassLandCard(activeLands[index]);
               },
             ),
         ],
       ),
     );
   }
-}
 
-class GlassLandCard extends StatelessWidget {
-  final Land land;
-  final VoidCallback onSelfDeclare;
-  final VoidCallback onDetails;
-  final VoidCallback onHistory;
-
-  const GlassLandCard({
-    super.key,
-    required this.land,
-    required this.onSelfDeclare,
-    required this.onDetails,
-    required this.onHistory,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    String displayArea = land.selectedUnit == 'هکتار'
-        ? '${(land.area / 10000).toStringAsFixed(1)} هکتار'
-        : '${land.area.toStringAsFixed(0)} متر مربع';
-
+  Widget _buildGlassLandCard(OrchardLand land) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: AppTheme.pistachioLight.withOpacity(0.7),
+        color: Colors.white.withOpacity(0.85),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.darkGreenBorder, width: 1.2),
+        border: Border.all(color: const Color(0xFFB2D8B0), width: 1.5),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
-          )
+          ),
         ],
       ),
       child: ClipRRect(
@@ -456,46 +362,77 @@ class GlassLandCard extends StatelessWidget {
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'نام زمین : ${land.name}',
-                  style: const TextStyle(color: AppTheme.darkBrownText, fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'متراژ: $displayArea',
-                  style: const TextStyle(color: AppTheme.darkBrownText, fontSize: 14),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'نوع درختان: ${land.treeTypes.join("، ")}',
-                  style: const TextStyle(color: AppTheme.darkBrownText, fontSize: 14),
-                ),
-                const SizedBox(height: 14),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: AppTheme.buttonGreen),
-                      onPressed: onSelfDeclare,
-                      child: const Text('خوداظهاری', style: TextStyle(color: Colors.white, fontSize: 12)),
+                    Text(
+                      land.name,
+                      style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Color(0xFF2E4B28)),
                     ),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: AppTheme.buttonGreen),
-                      onPressed: onDetails,
-                      child: const Text('ثبت جزئیات', style: TextStyle(color: Colors.white, fontSize: 12)),
-                    ),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: AppTheme.buttonGreen),
-                      onPressed: onHistory,
-                      child: const Text('تاریخچه', style: TextStyle(color: Colors.white, fontSize: 12)),
+                    IconButton(
+                      icon: const Icon(Icons.edit, color: Color(0xFF6D4C41), size: 20),
+                      onPressed: () => _openEditLandDialog(land),
+                      tooltip: 'ویرایش زمین',
                     ),
                   ],
-                )
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'متراژ: ${land.areaValue} ${land.unit} (${land.standardAreaSquareMeters.toStringAsFixed(0)} متر مربع)',
+                  style: const TextStyle(fontSize: 13, color: Colors.black87),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'ارقام درختان: ${land.treeVarieties.join('، ')}',
+                  style: const TextStyle(fontSize: 13, color: Colors.black87),
+                ),
+                const Divider(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF4A7C43),
+                          side: const BorderSide(color: Color(0xFF4A7C43)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                        ),
+                        onPressed: () => _promptSelfDeclaration(land),
+                        child: const Text('خوداظهاری', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF5A8F53),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                        ),
+                        onPressed: () => _openSelfDeclarationForm(land),
+                        child: const Text('ثبت جزئیات', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF6D4C41),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                        ),
+                        onPressed: () => _openHistoryView(land),
+                        child: const Text('تاریخچه', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -503,648 +440,768 @@ class GlassLandCard extends StatelessWidget {
       ),
     );
   }
-}
 
-class AddLandScreen extends StatefulWidget {
-  final VoidCallback onSaved;
-  const AddLandScreen({super.key, required this.onSaved});
-
-  @override
-  State<AddLandScreen> createState() => _AddLandScreenState();
-}
-
-class _AddLandScreenState extends State<AddLandScreen> {
-  final TextEditingController nameController = TextEditingController();
-  final TextEditingController areaController = TextEditingController();
-  String selectedUnit = 'متر مربع';
-  final List<String> availableTrees = ['اکبری', 'احمد آقایی', 'اوحدی', 'کله‌قوچی', 'فندقی', 'بادامی'];
-  final List<String> selectedTrees = [];
-  String? errorMessage;
-
-  void saveLand() {
-    final name = nameController.text.trim();
-    final areaText = areaController.text.trim();
-
-    if (name.isEmpty || areaText.isEmpty || selectedTrees.isEmpty) {
-      setState(() {
-        errorMessage = 'لطفاً تمام فیلدهای اجباری (نام، مساحت و نوع درخت) را تکمیل کنید.';
-      });
-      return;
-    }
-
-    final isDuplicate = AppData.lands.any((l) => !l.isDeleted && l.name == name);
-    if (isDuplicate) {
-      setState(() {
-        errorMessage = 'نام زمین انتخاب شده تکراری است. لطفاً نام دیگری انتخاب کنید.';
-      });
-      return;
-    }
-
-    final double? areaValue = double.tryParse(areaText);
-    if (areaValue == null || areaValue <= 0) {
-      setState(() {
-        errorMessage = 'فرمت مقدار مساحت نادرست است. لطفاً عدد وارد کنید.';
-      });
-      return;
-    }
-
-    double standardizedArea = selectedUnit == 'هکتار' ? areaValue * 10000 : areaValue;
-
-    final newLand = Land(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      name: name,
-      area: standardizedArea,
-      selectedUnit: selectedUnit,
-      treeTypes: List.from(selectedTrees),
-    );
-
-    AppData.lands.insert(0, newLand);
-    widget.onSaved();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('زمین با موفقیت ثبت شد')),
-    );
-    Navigator.pop(context);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('ثبت زمین جدید در باغ', style: TextStyle(color: AppTheme.darkBrownText)),
-        backgroundColor: AppTheme.pistachioLight,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (errorMessage != null)
-              Container(
-                padding: const EdgeInsets.all(10),
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(color: Colors.red.shade100, borderRadius: BorderRadius.circular(8)),
-                child: Text(errorMessage!, style: const TextStyle(color: Colors.red)),
-              ),
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(
-                labelText: 'نام زمین *',
-                enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: AppTheme.pistachioLight)),
-                focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: AppTheme.darkGreenBorder)),
-              ),
+  void _promptSelfDeclaration(OrchardLand land) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          backgroundColor: const Color(0xFFF9F6F0),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('خوداظهاری دوره‌ای', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          content: const Text(
+            'آیا مایل به تکمیل اطلاعات ۶ ماهه گذشته خود هستید؟',
+            style: TextStyle(fontSize: 14),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('خیر', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
             ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: TextField(
-                    controller: areaController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'مقدار مساحت *',
-                      enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: AppTheme.pistachioLight)),
-                      focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: AppTheme.darkGreenBorder)),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  flex: 1,
-                  child: DropdownButtonFormField<String>(
-                    value: selectedUnit,
-                    items: ['متر مربع', 'هکتار'].map((u) => DropdownMenuItem(value: u, child: Text(u))).toList(),
-                    onChanged: (val) => setState(() => selectedUnit = val!),
-                    decoration: const InputDecoration(
-                      labelText: 'واحد',
-                      enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: AppTheme.pistachioLight)),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            const Text('نوع درخت (انتخاب چندگانه) *:', style: TextStyle(color: AppTheme.darkBrownText, fontWeight: FontWeight.bold)),
-            Wrap(
-              spacing: 8,
-              children: availableTrees.map((tree) {
-                final isSelected = selectedTrees.contains(tree);
-                return FilterChip(
-                  label: Text(tree),
-                  selected: isSelected,
-                  selectedColor: AppTheme.pistachioLight,
-                  checkmarkColor: AppTheme.darkGreenBorder,
-                  onSelected: (val) {
-                    setState(() {
-                      val ? selectedTrees.add(tree) : selectedTrees.remove(tree);
-                    });
-                  },
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: AppTheme.buttonGreen),
-                    onPressed: saveLand,
-                    child: const Text('ذخیره', style: TextStyle(color: Colors.white)),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('انصراف', style: TextStyle(color: AppTheme.darkBrownText)),
-                  ),
-                )
-              ],
-            )
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class SelfDeclarationFlowScreen extends StatefulWidget {
-  final Land land;
-  const SelfDeclarationFlowScreen({super.key, required this.land});
-
-  @override
-  State<SelfDeclarationFlowScreen> createState() => _SelfDeclarationFlowScreenState();
-}
-
-class _SelfDeclarationFlowScreenState extends State<SelfDeclarationFlowScreen> {
-  final List<String> persianMonths = [
-    'فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور',
-    'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'
-  ];
-  String selectedMonth = 'فروردین';
-
-  TreeRecord? treeData;
-  LandDetailsRecord? landDetailsData;
-
-  void validateAndSubmit() {
-    final isDuplicateMonth = AppData.histories.any(
-      (h) => h.landName == widget.land.name && h.year == AppData.selectedYear && h.month == selectedMonth,
-    );
-
-    if (isDuplicateMonth) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('برای سال منتخب شما اطلاعات ماه $selectedMonth ذخیره شده است لطفاً مجدداً انتخاب نمایید'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    if (treeData == null || landDetailsData == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('لطفاً هم اطلاعات درختان و هم اطلاعات زمین را تکمیل فرمایید.')),
-      );
-      return;
-    }
-
-    AppData.histories.add(
-      HistoryRecord(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        landName: widget.land.name,
-        year: AppData.selectedYear,
-        month: selectedMonth,
-        tree: treeData!,
-        details: landDetailsData!,
-      ),
-    );
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('اطلاعات زمین با موفقیت در تاریخچه ذخیره شد')),
-    );
-    Navigator.pop(context);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('خوداظهاری: ${widget.land.name}', style: const TextStyle(color: AppTheme.darkBrownText)),
-        backgroundColor: AppTheme.pistachioLight,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Card(
-              color: AppTheme.pistachioLight.withOpacity(0.5),
-              shape: RoundedRectangleBorder(
-                side: const BorderSide(color: AppTheme.darkGreenBorder),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('۱. انتخاب ماه خوداظهاری', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.darkBrownText)),
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<String>(
-                      value: selectedMonth,
-                      items: persianMonths.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
-                      onChanged: (val) => setState(() => selectedMonth = val!),
-                      decoration: const InputDecoration(border: OutlineInputBorder()),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Card(
-              color: AppTheme.pistachioLight.withOpacity(0.5),
-              shape: RoundedRectangleBorder(
-                side: const BorderSide(color: AppTheme.darkGreenBorder),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: ListTile(
-                title: const Text('۲. اطلاعات درختان و آزمایش برگ', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.darkBrownText)),
-                subtitle: Text(treeData == null ? 'هنوز تکمیل نشده است' : 'اطلاعات با موفقیت درج شد', style: TextStyle(color: treeData == null ? Colors.red : Colors.green)),
-                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                onTap: () async {
-                  final result = await Navigator.push<TreeRecord>(
-                    context,
-                    MaterialPageRoute(builder: (_) => const TreeDetailsFormScreen()),
-                  );
-                  if (result != null) {
-                    setState(() => treeData = result);
-                  }
-                },
-              ),
-            ),
-            const SizedBox(height: 12),
-            Card(
-              color: AppTheme.pistachioLight.withOpacity(0.5),
-              shape: RoundedRectangleBorder(
-                side: const BorderSide(color: AppTheme.darkGreenBorder),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: ListTile(
-                title: const Text('۳. اطلاعات زمین (خاک، آبیاری و آب)', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.darkBrownText)),
-                subtitle: Text(landDetailsData == null ? 'هنوز تکمیل نشده است' : 'اطلاعات با موفقیت درج شد', style: TextStyle(color: landDetailsData == null ? Colors.red : Colors.green)),
-                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                onTap: () async {
-                  final result = await Navigator.push<LandDetailsRecord>(
-                    context,
-                    MaterialPageRoute(builder: (_) => const LandDetailsFormScreen()),
-                  );
-                  if (result != null) {
-                    setState(() => landDetailsData = result);
-                  }
-                },
-              ),
-            ),
-            const SizedBox(height: 24),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.buttonGreen,
-                minimumSize: const Size.fromHeight(48),
-              ),
-              onPressed: validateAndSubmit,
-              child: const Text('ثبت نهایی و ارسال به تاریخچه', style: TextStyle(color: Colors.white, fontSize: 16)),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4A7C43), foregroundColor: Colors.white),
+              onPressed: () {
+                Navigator.pop(ctx);
+                _openSelfDeclarationForm(land);
+              },
+              child: const Text('بله', style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
         ),
       ),
     );
   }
-}
 
-class TreeDetailsFormScreen extends StatefulWidget {
-  final TreeRecord? initialRecord;
-  const TreeDetailsFormScreen({super.key, this.initialRecord});
+  void _openAddLandDialog() {
+    final nameCtrl = TextEditingController();
+    final areaCtrl = TextEditingController();
+    String selectedUnit = 'هکتار';
+    final List<String> availableVarieties = ['اکبری', 'احمد آقایی', 'اوحدی', 'کله‌قوچی', 'فندقی', 'بادامی'];
+    final List<String> selectedVarieties = [];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) => Directionality(
+          textDirection: TextDirection.rtl,
+          child: Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 20, right: 20, top: 20),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('ثبت زمین جدید در باغ', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF4E342E))),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: nameCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'نام زمین *',
+                      border: OutlineInputBorder(),
+                      focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Color(0xFF4A7C43), width: 2)),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: TextField(
+                          controller: areaCtrl,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'مقدار مساحت *',
+                            border: OutlineInputBorder(),
+                            focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Color(0xFF4A7C43), width: 2)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 1,
+                        child: DropdownButtonFormField<String>(
+                          value: selectedUnit,
+                          items: ['هکتار', 'متر مربع'].map((u) => DropdownMenuItem(value: u, child: Text(u))).toList(),
+                          onChanged: (val) {
+                            if (val != null) setModalState(() => selectedUnit = val);
+                          },
+                          decoration: const InputDecoration(border: OutlineInputBorder()),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  const Text('نوع درختان (چند انتخابی):', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  Wrap(
+                    spacing: 8,
+                    children: availableVarieties.map((v) {
+                      final isSelected = selectedVarieties.contains(v);
+                      return FilterChip(
+                        label: Text(v),
+                        selected: isSelected,
+                        selectedColor: const Color(0xFFB2D8B0),
+                        onSelected: (val) {
+                          setModalState(() {
+                            if (val) {
+                              selectedVarieties.add(v);
+                            } else {
+                              selectedVarieties.remove(v);
+                            }
+                          });
+                        },
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4A7C43), foregroundColor: Colors.white),
+                          onPressed: () {
+                            if (nameCtrl.text.trim().isEmpty || areaCtrl.text.trim().isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('لطفاً فیلدهای اجباری را پر کنید.')));
+                              return;
+                            }
+                            if (lands.any((l) => !l.isDeleted && l.name == nameCtrl.text.trim())) {
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('نام زمین انتخاب‌شده تکراری است. لطفاً نام دیگری انتخاب کنید.')));
+                              return;
+                            }
+                            final double? val = double.tryParse(areaCtrl.text.trim());
+                            if (val == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فرمت مساحت نامعتبر است.')));
+                              return;
+                            }
+                            final double standardSq = selectedUnit == 'هکتار' ? val * 10000 : val;
+                            setState(() {
+                              lands.insert(0, OrchardLand(
+                                id: 'L-${DateTime.now().millisecondsSinceEpoch}',
+                                name: nameCtrl.text.trim(),
+                                unit: selectedUnit,
+                                areaValue: val,
+                                standardAreaSquareMeters: standardSq,
+                                treeVarieties: selectedVarieties.isEmpty ? ['اکبری'] : selectedVarieties,
+                              ));
+                            });
+                            Navigator.pop(ctx);
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('زمین با موفقیت ثبت شد.')));
+                          },
+                          child: const Text('ذخیره'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('انصراف')),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _openEditLandDialog(OrchardLand land) {
+    final nameCtrl = TextEditingController(text: land.name);
+    final areaCtrl = TextEditingController(text: land.areaValue.toString());
+    String selectedUnit = land.unit;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 20, right: 20, top: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('ویرایش مشخصات زمین', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF4E342E))),
+              const SizedBox(height: 16),
+              TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'نام زمین', border: OutlineInputBorder())),
+              const SizedBox(height: 12),
+              TextField(controller: areaCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'مساحت', border: OutlineInputBorder())),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4A7C43), foregroundColor: Colors.white),
+                      onPressed: () {
+                        setState(() {
+                          land.name = nameCtrl.text.trim();
+                          final double? v = double.tryParse(areaCtrl.text.trim());
+                          if (v != null) {
+                            land.areaValue = v;
+                            land.standardAreaSquareMeters = selectedUnit == 'هکتار' ? v * 10000 : v;
+                          }
+                        });
+                        Navigator.pop(ctx);
+                      },
+                      child: const Text('ذخیره تغییرات'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        land.isDeleted = true;
+                      });
+                      Navigator.pop(ctx);
+                    },
+                    child: const Text('حذف زمین', style: TextStyle(color: Colors.red)),
+                  )
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _openSelfDeclarationForm(OrchardLand land, [MonthlyRecord? recordToEdit]) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (ctx) => SelfDeclarationScreen(
+          land: land,
+          year: selectedYear,
+          existingRecords: records,
+          recordToEdit: recordToEdit,
+          onSave: (newRec) {
+            setState(() {
+              if (recordToEdit != null) {
+                final idx = records.indexWhere((r) => r.id == recordToEdit.id);
+                if (idx != -1) records[idx] = newRec;
+              } else {
+                records.add(newRec);
+              }
+            });
+          },
+        ),
+      ),
+    );
+  }
+
+  void _openHistoryView(OrchardLand land) {
+    final landRecords = records.where((r) => r.landId == land.id && r.solarYear == selectedYear).toList();
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (ctx) => Directionality(
+          textDirection: TextDirection.rtl,
+          child: Scaffold(
+            appBar: AppBar(
+              title: Text('تاریخچه: ${land.name} ($selectedYear)'),
+            ),
+            body: landRecords.isEmpty
+                ? _buildEmptyState('برای این سال اطلاعاتی ثبت نشده است.')
+                : SingleChildScrollView(
+                    scrollDirection: Axis.vertical,
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: DataTable(
+                          headingRowColor: MaterialStateProperty.all(const Color(0xFFD7E7D5)),
+                          gridThickness: 1,
+                          border: TableBorder.all(color: Colors.grey.shade300),
+                          columns: const [
+                            DataColumn(label: Text('ردیف', style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text('ماه', style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text('نوع و تعداد', style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text('سن درخت', style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text('برگ (N, P, K)', style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text('خاک (Ec, pH, SAR)', style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text('آب (Ec, TDS)', style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text('آبیاری', style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text('عملیات', style: TextStyle(fontWeight: FontWeight.bold))),
+                          ],
+                          rows: List.generate(landRecords.length, (idx) {
+                            final r = landRecords[idx];
+                            return DataRow(
+                              cells: [
+                                DataCell(Text((idx + 1).toString())),
+                                DataCell(Text(r.month)),
+                                DataCell(Text('${r.variety} (${r.treeCount} ${r.countType})')),
+                                DataCell(Text('${r.ageGroup} - ${r.treeAge} ساله')),
+                                DataCell(Text('N:${r.leafElements['N'] ?? '-'}% | P:${r.leafElements['P'] ?? '-'}% | K:${r.leafElements['K'] ?? '-'}%')),
+                                DataCell(Text('Ec:${r.soilElements['Ec'] ?? '-'} | pH:${r.soilElements['pH'] ?? '-'} | SAR:${r.soilElements['SAR'] ?? '-'}')),
+                                DataCell(Text('Ec:${r.waterElements['Ec'] ?? '-'} | TDS:${r.waterElements['TDS'] ?? '-'}')),
+                                DataCell(
+                                  Wrap(
+                                    spacing: 4,
+                                    children: r.irrigationDates.map((d) => Chip(
+                                      label: Text(d, style: const TextStyle(fontSize: 10)),
+                                      padding: EdgeInsets.zero,
+                                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    )).toList(),
+                                  ),
+                                ),
+                                DataCell(
+                                  IconButton(
+                                    icon: const Icon(Icons.edit, color: Colors.blueAccent, size: 20),
+                                    onPressed: () {
+                                      Navigator.pop(ctx);
+                                      _openSelfDeclarationForm(land, r);
+                                    },
+                                    tooltip: 'ویرایش رکورد',
+                                  ),
+                                ),
+                              ],
+                            );
+                          }),
+                        ),
+                      ),
+                    ),
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildConsultantView() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'کارتابل مدیریت زمین‌های کشاورزان تحت پوشش',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF4E342E)),
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: DataTable(
+                headingRowColor: MaterialStateProperty.all(const Color(0xFFEFEBE9)),
+                border: TableBorder.all(color: Colors.grey.shade300),
+                columns: const [
+                  DataColumn(label: Text('ردیف', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('نام باغدار', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('شناسه', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('نام زمین', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('جزئیات', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('عملیات بررسی', style: TextStyle(fontWeight: FontWeight.bold))),
+                ],
+                rows: consultantList.map((c) {
+                  return DataRow(cells: [
+                    DataCell(Text(c.rowNum)),
+                    DataCell(Text(c.farmerName)),
+                    DataCell(Text(c.farmerCode)),
+                    DataCell(Text(c.landName)),
+                    DataCell(
+                      IconButton(
+                        icon: const Icon(Icons.remove_red_eye, color: Color(0xFF4A7C43)),
+                        tooltip: 'مشاهده تاریخچه زمین',
+                        onPressed: () {
+                          final targetLand = lands.firstWhere(
+                            (l) => l.id == c.landId,
+                            orElse: () => lands.first,
+                          );
+                          _openHistoryView(targetLand);
+                        },
+                      ),
+                    ),
+                    DataCell(
+                      DropdownButton<String>(
+                        value: c.status,
+                        underline: const SizedBox(),
+                        items: ['در حال بررسی', 'انجام شده'].map((s) {
+                          return DropdownMenuItem(
+                            value: s,
+                            child: Text(
+                              s,
+                              style: TextStyle(
+                                color: s == 'انجام شده' ? Colors.green.shade700 : Colors.orange.shade800,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (newStatus) {
+                          if (newStatus != null) {
+                            setState(() {
+                              c.status = newStatus;
+                            });
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('وضعیت زمین ${c.landName} به "$newStatus" تغییر کرد.')),
+                            );
+                          }
+                        },
+                      ),
+                    ),
+                  ]);
+                }).toList(),
+              ),
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(String msg) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 40.0),
+        child: Column(
+          children: [
+            const Icon(Icons.info_outline, size: 48, color: Colors.grey),
+            const SizedBox(height: 10),
+            Text(msg, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+class SelfDeclarationScreen extends StatefulWidget {
+  final OrchardLand land;
+  final int year;
+  final List<MonthlyRecord> existingRecords;
+  final MonthlyRecord? recordToEdit;
+  final Function(MonthlyRecord) onSave;
+
+  const SelfDeclarationScreen({
+    super.key,
+    required this.land,
+    required this.year,
+    required this.existingRecords,
+    this.recordToEdit,
+    required this.onSave,
+  });
 
   @override
-  State<TreeDetailsFormScreen> createState() => _TreeDetailsFormScreenState();
+  State<SelfDeclarationScreen> createState() => _SelfDeclarationScreenState();
 }
 
-class _TreeDetailsFormScreenState extends State<TreeDetailsFormScreen> {
-  final countingTypes = ['هکتار تعداد', 'قفیز تعداد', 'جریب تعداد', 'تعداد (واحد دانه)'];
-  final treeTypes = ['اکبری', 'احمد آقایی', 'اوحدی', 'کله‌قوچی', 'فندقی', 'بادامی'];
-  final ageGroups = ['نو نهال ( 1 تا 3 سال )', 'جوان( 4 تا 8 سال )', 'بارور ( بیش از 8 سال )'];
+class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
 
-  String selectedCounting = 'هکتار تعداد';
-  String selectedTree = 'اکبری';
-  String selectedAgeGroup = 'نو نهال ( 1 تا 3 سال )';
+  String selectedMonth = 'مهر';
+  final List<String> months = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
 
-  final TextEditingController countController = TextEditingController();
-  final TextEditingController exactAgeController = TextEditingController();
-  final TextEditingController leafDateController = TextEditingController(text: '1404/07/15');
+  String countType = 'هکتار تعداد';
+  final treeCountCtrl = TextEditingController(text: '350');
+  String variety = 'اکبری';
+  String ageGroup = 'بارور (بیش از 8 سال)';
+  final treeAgeCtrl = TextEditingController(text: '12');
+  final leafDateCtrl = TextEditingController(text: '1404/07/15');
+  final Map<String, TextEditingController> leafCtrls = {};
 
-  final Map<String, TextEditingController> elements = {
-    'نیتروژن (N) %': TextEditingController(text: '2.1'),
-    'فسفر (P) %': TextEditingController(text: '0.14'),
-    'پتاسیم (K) %': TextEditingController(text: '1.2'),
-    'کلسیم (Ca) %': TextEditingController(text: '1.8'),
-    'منیزیم (Mg) %': TextEditingController(text: '0.6'),
-    'سدیم (Na) %': TextEditingController(text: '0.05'),
-    'کلر (Cl) %': TextEditingController(text: '0.2'),
-    'بور (B) P.PM': TextEditingController(text: '65'),
-    'مس (Cu) P.PM': TextEditingController(text: '8'),
-    'روی / زینک (Zn) P.PM': TextEditingController(text: '14'),
-    'آهن (Fe) P.PM': TextEditingController(text: '90'),
-    'منگنز (Mn) P.PM': TextEditingController(text: '45'),
-  };
+  String soilType = 'رسی';
+  final soilDateCtrl = TextEditingController(text: '1404/07/10');
+  final Map<String, TextEditingController> soilCtrls = {};
+  final List<String> irrigationDates = ['1404/07/04', '1404/07/18'];
+  final waterDateCtrl = TextEditingController(text: '1404/07/12');
+  final Map<String, TextEditingController> waterCtrls = {};
 
   @override
   void initState() {
     super.initState();
-    if (widget.initialRecord != null) {
-      final r = widget.initialRecord!;
-      selectedCounting = r.countingType;
-      selectedTree = r.treeType;
-      selectedAgeGroup = r.ageGroup;
-      countController.text = r.treeCount.toString();
-      exactAgeController.text = r.exactAge.toString();
-      leafDateController.text = r.leafTestDate;
-      r.chemicalElements.forEach((k, v) {
-        if (elements.containsKey(k)) elements[k]!.text = v;
-      });
-    }
-  }
+    _tabController = TabController(length: 3, vsync: this);
 
-  void saveTreeRecord() {
-    if (countController.text.isEmpty || exactAgeController.text.isEmpty || leafDateController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('لطفاً فیلدهای اجباری شمارش و سن درخت را تکمیل فرمایید.')),
-      );
-      return;
+    for (var k in ['N', 'P', 'K', 'Ca', 'Mg', 'Na', 'Cl', 'B', 'Cu', 'Zn', 'Fe', 'Mn']) {
+      leafCtrls[k] = TextEditingController(text: widget.recordToEdit?.leafElements[k] ?? '1.2');
     }
 
-    final Map<String, String> chemicalMap = {};
-    elements.forEach((k, v) {
-      chemicalMap[k] = v.text;
-    });
+    for (var k in ['Ec', 'pH', 'Ca', 'Mg', 'Na', 'SAR', 'K', 'P', 'Clay', 'Silt', 'Sand', 'Fe', 'Cu', 'Mn', 'T.N.V']) {
+      soilCtrls[k] = TextEditingController(text: widget.recordToEdit?.soilElements[k] ?? '2.1');
+    }
 
-    final record = TreeRecord(
-      countingType: selectedCounting,
-      treeCount: int.tryParse(countController.text) ?? 0,
-      treeType: selectedTree,
-      ageGroup: selectedAgeGroup,
-      exactAge: int.tryParse(exactAgeController.text) ?? 0,
-      leafTestDate: leafDateController.text,
-      chemicalElements: chemicalMap,
-    );
+    for (var k in ['Ec', 'TDS', 'SAR', 'pH']) {
+      waterCtrls[k] = TextEditingController(text: widget.recordToEdit?.waterElements[k] ?? '3.5');
+    }
 
-    Navigator.pop(context, record);
+    if (widget.recordToEdit != null) {
+      selectedMonth = widget.recordToEdit!.month;
+      treeCountCtrl.text = widget.recordToEdit!.treeCount.toString();
+      treeAgeCtrl.text = widget.recordToEdit!.treeAge.toString();
+      variety = widget.recordToEdit!.variety;
+      ageGroup = widget.recordToEdit!.ageGroup;
+      countType = widget.recordToEdit!.countType;
+      soilType = widget.recordToEdit!.soilType;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('ثبت اطلاعات درختان و آزمایش برگ', style: TextStyle(color: AppTheme.darkBrownText)),
-        backgroundColor: AppTheme.pistachioLight,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(widget.recordToEdit != null ? 'ویرایش اطلاعات دوره' : 'ثبت خوداظهاری - ${widget.land.name}'),
+          bottom: TabBar(
+            controller: _tabController,
+            indicatorColor: Colors.amberAccent,
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white70,
+            tabs: const [
+              Tab(text: '۱. انتخاب ماه'),
+              Tab(text: '۲. درخت و برگ'),
+              Tab(text: '۳. خاک و آب'),
+            ],
+          ),
+        ),
+        body: TabBarView(
+          controller: _tabController,
           children: [
-            const Text('الف) مشخصات شمارش و نوع درخت', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.darkBrownText)),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              value: selectedCounting,
-              items: countingTypes.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
-              onChanged: (v) => setState(() => selectedCounting = v!),
-              decoration: const InputDecoration(labelText: 'نوع شمارش درخت *', border: OutlineInputBorder()),
+            _buildMonthTab(),
+            _buildTreeTab(),
+            _buildSoilWaterTab(),
+          ],
+        ),
+        bottomNavigationBar: Container(
+          padding: const EdgeInsets.all(16),
+          color: Colors.white,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4A7C43),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
             ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: countController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'تعداد درخت *', border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              value: selectedTree,
-              items: treeTypes.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
-              onChanged: (v) => setState(() => selectedTree = v!),
-              decoration: const InputDecoration(labelText: 'نوع درخت *', border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              value: selectedAgeGroup,
-              items: ageGroups.map((a) => DropdownMenuItem(value: a, child: Text(a))).toList(),
-              onChanged: (v) => setState(() => selectedAgeGroup = v!),
-              decoration: const InputDecoration(labelText: 'گروه سن درخت *', border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: exactAgeController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'سن دقیق درخت (عددی) *', border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 16),
-            const Text('ب) تصاویر تخصصی (حداکثر ۲ عکس برای هر بخش)', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.darkBrownText)),
-            Wrap(
-              spacing: 8,
-              children: ['تصویر برگ', 'تصویر تنه', 'تصویر ریشه', 'تصویر کلی'].map((t) {
-                return OutlinedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.camera_alt, size: 16),
-                  label: Text(t),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 16),
-            const Text('ج) تاریخ و نتایج آزمایش برگ (عناصر شیمیایی)', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.darkBrownText)),
-            const SizedBox(height: 8),
-            TextField(
-              controller: leafDateController,
-              decoration: const InputDecoration(labelText: 'تاریخ آزمایش برگ (تقویم شمسی) *', border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 8),
-            ...elements.entries.map((entry) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 6),
+            onPressed: _submitRecord,
+            child: const Text('ثبت نهایی اطلاعات دوره', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMonthTab() {
+    return Padding(
+      padding: const EdgeInsets.all(20.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('انتخاب ماه خوداظهاری (سال زراعی فعال):', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 16),
+          DropdownButtonFormField<String>(
+            value: selectedMonth,
+            items: months.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
+            onChanged: (val) {
+              if (val != null) setState(() => selectedMonth = val);
+            },
+            decoration: const InputDecoration(border: OutlineInputBorder(), labelText: 'ماه شمسی'),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF5A8F53), foregroundColor: Colors.white),
+            onPressed: () => _tabController.animateTo(1),
+            icon: const Icon(Icons.arrow_forward),
+            label: const Text('مرحله بعد: ورود اطلاعات درختان'),
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTreeTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('مشخصات شمارش و نوع درخت', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF4E342E))),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  value: countType,
+                  items: ['هکتار تعداد', 'قفیز تعداد', 'جریب تعداد', 'تعداد (واحد دانه)'].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 12)))).toList(),
+                  onChanged: (v) => setState(() => countType = v!),
+                  decoration: const InputDecoration(labelText: 'نوع شمارش', border: OutlineInputBorder()),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
                 child: TextField(
-                  controller: entry.value,
+                  controller: treeCountCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'تعداد درخت *', border: OutlineInputBorder()),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  value: variety,
+                  items: ['اکبری', 'احمد آقایی', 'اوحدی', 'کله‌قوچی', 'فندقی', 'بادامی'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                  onChanged: (v) => setState(() => variety = v!),
+                  decoration: const InputDecoration(labelText: 'نوع درخت', border: OutlineInputBorder()),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  value: ageGroup,
+                  items: ['نونهال (1 تا 3 سال)', 'جوان (4 تا 8 سال)', 'بارور (بیش از 8 سال)'].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 11)))).toList(),
+                  onChanged: (v) => setState(() => ageGroup = v!),
+                  decoration: const InputDecoration(labelText: 'گروه سنی', border: OutlineInputBorder()),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: treeAgeCtrl,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(labelText: 'سن دقیق درخت (سال) *', border: OutlineInputBorder()),
+          ),
+          const Divider(height: 32),
+          const Text('عناصر آزمایش برگ (درصد % و PPM)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF4E342E))),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: leafCtrls.entries.map((e) {
+              final isPpm = ['B', 'Cu', 'Zn', 'Fe', 'Mn'].contains(e.key);
+              return SizedBox(
+                width: 105,
+                child: TextField(
+                  controller: e.value,
                   decoration: InputDecoration(
-                    labelText: entry.key,
+                    labelText: '${e.key} (${isPpm ? 'PPM' : '%'})',
                     border: const OutlineInputBorder(),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                   ),
                 ),
               );
-            }),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: AppTheme.buttonGreen),
-                    onPressed: saveTreeRecord,
-                    child: const Text('ذخیره', style: TextStyle(color: Colors.white)),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('انصراف'),
-                  ),
-                ),
-              ],
-            )
-          ],
-        ),
+            }).toList(),
+          ),
+        ],
       ),
     );
   }
-}
 
-class LandDetailsFormScreen extends StatefulWidget {
-  final LandDetailsRecord? initialRecord;
-  const LandDetailsFormScreen({super.key, this.initialRecord});
+  Widget _buildSoilWaterTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('آزمایش خاک و دوره‌های آبیاری', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF4E342E))),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  value: soilType,
+                  items: ['شنی', 'رسی', 'سیلتی', 'لومی'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                  onChanged: (v) => setState(() => soilType = v!),
+                  decoration: const InputDecoration(labelText: 'نوع بافت خاک', border: OutlineInputBorder()),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextField(
+                  controller: soilDateCtrl,
+                  decoration: const InputDecoration(labelText: 'تاریخ آزمایش خاک', border: OutlineInputBorder()),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Text('شاخص‌های شیمیایی خاک (۱۵ مورد):', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: soilCtrls.entries.map((e) {
+              return SizedBox(
+                width: 105,
+                child: TextField(
+                  controller: e.value,
+                  decoration: InputDecoration(
+                    labelText: e.key,
+                    border: const OutlineInputBorder(),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          const Divider(height: 32),
+          const Text('کیفیت آب و دوره‌های آبیاری', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF4E342E))),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            children: waterCtrls.entries.map((e) {
+              return SizedBox(
+                width: 110,
+                child: TextField(
+                  controller: e.value,
+                  decoration: InputDecoration(
+                    labelText: e.key,
+                    border: const OutlineInputBorder(),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
 
-  @override
-  State<LandDetailsFormScreen> createState() => _LandDetailsFormScreenState();
-}
+  void _submitRecord() {
+    final isDuplicate = widget.existingRecords.any((r) =>
+        r.landId == widget.land.id &&
+        r.solarYear == widget.year &&
+        r.month == selectedMonth &&
+        r.id != widget.recordToEdit?.id);
 
-class _LandDetailsFormScreenState extends State<LandDetailsFormScreen> {
-  final List<String> soilTypes = ['شنی', 'رسی', 'سیلتی', 'لومی'];
-  String selectedSoil = 'شنی';
-
-  final TextEditingController soilDateController = TextEditingController(text: '1404/07/10');
-  final TextEditingController waterDateController = TextEditingController(text: '1404/07/12');
-
-  final List<String> irrigationDates = ['1404/07/05', '1404/07/20'];
-  final TextEditingController newIrrigationDateController = TextEditingController();
-
-  final Map<String, TextEditingController> soilParams = {
-    'EC (هدایت الکتریکی) - ds/m': TextEditingController(text: '4.2'),
-    'pH (اسیدیته)': TextEditingController(text: '7.8'),
-    'Ca (کلسیم) - meq/l': TextEditingController(text: '12'),
-    'Mg (منیزیم) - meq/l': TextEditingController(text: '8'),
-    'Na (سدیم) - meq/l': TextEditingController(text: '15'),
-    'SAR (نسبت جذب سدیم)': TextEditingController(text: '4.7'),
-    'K (پتاسیم) - mg/kg': TextEditingController(text: '280'),
-    'P (فسفر) - mg/kg': TextEditingController(text: '15'),
-    'Clay (رس) - %': TextEditingController(text: '22'),
-    'Silt (سیلت) - %': TextEditingController(text: '28'),
-    'Sand (شن) - %': TextEditingController(text: '50'),
-    'Fe (آهن) - mg/kg': TextEditingController(text: '6'),
-    'Cu (مس) - mg/kg': TextEditingController(text: '1.2'),
-    'Mn (منگنز) - mg/kg': TextEditingController(text: '8.5'),
-    'T.N.V (مواد خنثی شونده) - %': TextEditingController(text: '18'),
-  };
-
-  final Map<String, TextEditingController> waterParams = {
-    'EC قابلیت هدایت الکتریکی - ds/m': TextEditingController(text: '3.5'),
-    'TDS مقدار کل املاح': TextEditingController(text: '2200'),
-    'SAR نسبت جذب سدیم': TextEditingController(text: '5.1'),
-    'pH اسیدیته': TextEditingController(text: '7.4'),
-  };
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.initialRecord != null) {
-      final r = widget.initialRecord!;
-      selectedSoil = r.soilType;
-      soilDateController.text = r.soilTestDate;
-      waterDateController.text = r.waterTestDate;
-      irrigationDates.clear();
-      irrigationDates.addAll(r.irrigationDates);
-      r.soilParams.forEach((k, v) {
-        if (soilParams.containsKey(k)) soilParams[k]!.text = v;
-      });
-      r.waterParams.forEach((k, v) {
-        if (waterParams.containsKey(k)) waterParams[k]!.text = v;
-      });
+    if (isDuplicate) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('برای سال منتخب شما اطلاعات ماه $selectedMonth ذخیره شده است لطفاً مجدداً انتخاب نمایید')),
+      );
+      _tabController.animateTo(0);
+      return;
     }
-  }
 
-  void saveDetailsRecord() {
-    final Map<String, String> sMap = {};
-    soilParams.forEach((k, v) => sMap[k] = v.text);
-
-    final Map<String, String> wMap = {};
-    waterParams.forEach((k, v) => wMap[k] = v.text);
-
-    final record = LandDetailsRecord(
-      soilType: selectedSoil,
-      soilTestDate: soilDateController.text,
-      soilParams: sMap,
-      irrigationDates: List.from(irrigationDates),
-      waterTestDate: waterDateController.text,
-      waterParams: wMap,
+    final newRecord = MonthlyRecord(
+      id: widget.recordToEdit?.id ?? 'REC-${DateTime.now().millisecondsSinceEpoch}',
+      landId: widget.land.id,
+      solarYear: widget.year,
+      month: selectedMonth,
+      countType: countType,
+      treeCount: int.tryParse(treeCountCtrl.text) ?? 0,
+      variety: variety,
+      ageGroup: ageGroup,
+      treeAge: int.tryParse(treeAgeCtrl.text) ?? 0,
+      uploadedImages: [],
+      leafTestDate: leafDateCtrl.text,
+      leafElements: leafCtrls.map((k, v) => MapEntry(k, v.text)),
+      soilType: soilType,
+      soilTestDate: soilDateCtrl.text,
+      soilElements: soilCtrls.map((k, v) => MapEntry(k, v.text)),
+      irrigationDates: irrigationDates,
+      waterTestDate: waterDateCtrl.text,
+      waterElements: waterCtrls.map((k, v) => MapEntry(k, v.text)),
     );
 
-    Navigator.pop(context, record);
+    widget.onSave(newRecord);
+    Navigator.pop(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('اطلاعات با موفقیت ذخیره گردید.')),
+    );
   }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('اطلاعات زمین (خاک، آبیاری، آب)', style: TextStyle(color: AppTheme.darkBrownText)),
-        backgroundColor: AppTheme.pistachioLight,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('بخش اول: آزمایش خاک', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.darkBrownText)),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              value: selectedSoil,
-              items: soilTypes.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
-              onChanged: (v) => setState(() => selectedSoil = v!),
-              decoration: const InputDecoration(labelText: 'نوع خاک *', border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: soilDateController,
-              decoration: const InputDecoration(labelText: 'تاریخ آزمایش خاک (شمسی) *', border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 8),
-            ...soilParams.entries.map((e) => Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: TextField(
-                    controller: e.value,
-                    decoration: InputDecoration(labelText: e.key, border: const OutlineInputBorder()),
-                  ),
-                )),
-            const Divider(height: 32),
-            const Text('بخش دوم: دوره آبیاری (تاریخ‌های آبیاری)', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.darkBrownText)),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: newIrrigationDateController,
-                    decoration: const InputDecoration(hintText: 'مثال: 1404/07/28', border: OutlineInputBorder()),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.add_circle, color: AppTheme.buttonGreen, size: 32),
-                  onPressed: () {
-                    if (newIrrigationDateController.text.isNotEmpty) {
-                      setState(() {
-                        irrigationDates.add(newIrrigationDateController.text);
-                        newIrrigationDateController.clear();
-                      });
-                    }
-                  },
-                )
-              ],
-            ),
-            Wrap(
-              spacing: 6,
-              children: irrigationDates.map((d) => Chip(label: Text(d), onDeleted: () => setState(() => irrigationDates.remove(d)))).toList(),
-            ),
-            const Divider(height: 32),
-            
+}
