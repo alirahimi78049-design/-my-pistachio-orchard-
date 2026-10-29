@@ -1,17 +1,18 @@
-name: Build Android APK
+name: Build and Release Android APK
 
 on:
   push:
     branches: [ "main" ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
-      - name: Checkout Repository
+      - name: Checkout Source Code
         uses: actions/checkout@v4
 
       - name: Set up Java
@@ -26,26 +27,28 @@ jobs:
           flutter-version: '3.19.6'
           channel: 'stable'
 
-      - name: Build Clean Flutter App
+      - name: Assemble Pistachio App
         run: |
-          if [ -d "Lib" ]; then
-            mv Lib lib
-          fi
-          flutter create --org com.pistachio pistachio_app
+          flutter create --org com.pistachio.orchard pistachio_app
           cd pistachio_app
+          
           flutter pub add flutter_localizations --sdk=flutter
           flutter pub add intl
           flutter pub add shamsi_date
           flutter pub add google_fonts
-          cp ../lib/*.dart lib/
+          
+          # پیدا کردن فایل کدهای دارت چه در پوشه Lib باشد چه lib
+          find .. -name "main.dart" -not -path "*/pistachio_app/*" -exec cp {} lib/main.dart \;
+          
           flutter build apk --debug
-          mv build/app/outputs/flutter-apk/app-debug.apk ../PistachioApp.apk
+          cp build/app/outputs/flutter-apk/app-debug.apk ../PistachioOrchardApp.apk
 
-      - name: Create Release and Upload APK
+      - name: Publish Direct Download Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v1.0.0
-          name: Pistachio Orchard App v1.0
-          files: PistachioApp.apk
+          tag_name: release-${{ github.run_number }}
+          name: "نسخه نهایی اپلیکیشن باغ پسته (بیلد شماره ${{ github.run_number }})"
+          body: "فایل نصبی مستقیم اندروید (APK)"
+          files: PistachioOrchardApp.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
