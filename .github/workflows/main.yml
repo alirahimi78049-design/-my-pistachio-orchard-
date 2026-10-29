@@ -29,9 +29,6 @@ jobs:
 
       - name: Assemble Clean Flutter Application
         run: |
-          if [ -d "Lib" ]; then
-            mv Lib lib
-          fi
           flutter create --org com.pistachio.orchard pistachio_app
           cd pistachio_app
           
@@ -40,8 +37,15 @@ jobs:
           flutter pub add shamsi_date
           flutter pub add google_fonts
           
-          # کپی قطعی کدهای دارت به درون پروژه استاندارد
-          cp ../lib/main.dart lib/main.dart
+          # پیدا کردن خودکار فایل main.dart در کل مخزن و جایگزینی آن
+          TARGET_FILE=$(find .. -maxdepth 3 -iname "main.dart" -not -path "*/pistachio_app/*" | head -n 1)
+          if [ -n "$TARGET_FILE" ]; then
+            echo "Found main.dart at: $TARGET_FILE"
+            cp "$TARGET_FILE" lib/main.dart
+          else
+            echo "ERROR: main.dart not found in repository!"
+            exit 1
+          fi
           
           flutter build apk --debug
           cp build/app/outputs/flutter-apk/app-debug.apk ../PistachioOrchardApp.apk
