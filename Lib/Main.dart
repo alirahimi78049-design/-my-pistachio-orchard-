@@ -11,7 +11,7 @@ class PistachioApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'سامانه مدیریت باغ پسته',
+      title: 'سامانه مدیریت باغات پسته',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
@@ -714,7 +714,6 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                         padding: const EdgeInsets.all(16.0),
                         child: DataTable(
                           headingRowColor: MaterialStateProperty.all(const Color(0xFFD7E7D5)),
-                          gridThickness: 1,
                           border: TableBorder.all(color: Colors.grey.shade300),
                           columns: const [
                             DataColumn(label: Text('ردیف', style: TextStyle(fontWeight: FontWeight.bold))),
@@ -733,8 +732,8 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                               cells: [
                                 DataCell(Text((idx + 1).toString())),
                                 DataCell(Text(r.month)),
-                                DataCell(Text('${r.variety} (${r.treeCount} ${r.countType})')),
-                                DataCell(Text('${r.ageGroup} - ${r.treeAge} ساله')),
+                                DataCell(Text('${r.variety} (${r.treeCount}${r.countType})')),
+                                DataCell(Text('${r.ageGroup} -${r.treeAge} ساله')),
                                 DataCell(Text('N:${r.leafElements['N'] ?? '-'}% | P:${r.leafElements['P'] ?? '-'}% | K:${r.leafElements['K'] ?? '-'}%')),
                                 DataCell(Text('Ec:${r.soilElements['Ec'] ?? '-'} | pH:${r.soilElements['pH'] ?? '-'} | SAR:${r.soilElements['SAR'] ?? '-'}')),
                                 DataCell(Text('Ec:${r.waterElements['Ec'] ?? '-'} | TDS:${r.waterElements['TDS'] ?? '-'}')),
@@ -868,6 +867,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     );
   }
 }
+
 class SelfDeclarationScreen extends StatefulWidget {
   final OrchardLand land;
   final int year;
@@ -1151,57 +1151,4 @@ class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> with Sing
                   decoration: InputDecoration(
                     labelText: e.key,
                     border: const OutlineInputBorder(),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _submitRecord() {
-    final isDuplicate = widget.existingRecords.any((r) =>
-        r.landId == widget.land.id &&
-        r.solarYear == widget.year &&
-        r.month == selectedMonth &&
-        r.id != widget.recordToEdit?.id);
-
-    if (isDuplicate) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('برای سال منتخب شما اطلاعات ماه $selectedMonth ذخیره شده است لطفاً مجدداً انتخاب نمایید')),
-      );
-      _tabController.animateTo(0);
-      return;
-    }
-
-    final newRecord = MonthlyRecord(
-      id: widget.recordToEdit?.id ?? 'REC-${DateTime.now().millisecondsSinceEpoch}',
-      landId: widget.land.id,
-      solarYear: widget.year,
-      month: selectedMonth,
-      countType: countType,
-      treeCount: int.tryParse(treeCountCtrl.text) ?? 0,
-      variety: variety,
-      ageGroup: ageGroup,
-      treeAge: int.tryParse(treeAgeCtrl.text) ?? 0,
-      uploadedImages: [],
-      leafTestDate: leafDateCtrl.text,
-      leafElements: leafCtrls.map((k, v) => MapEntry(k, v.text)),
-      soilType: soilType,
-      soilTestDate: soilDateCtrl.text,
-      soilElements: soilCtrls.map((k, v) => MapEntry(k, v.text)),
-      irrigationDates: irrigationDates,
-      waterTestDate: waterDateCtrl.text,
-      waterElements: waterCtrls.map((k, v) => MapEntry(k, v.text)),
-    );
-
-    widget.onSave(newRecord);
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('اطلاعات با موفقیت ذخیره گردید.')),
-    );
-  }
-}
+                    
