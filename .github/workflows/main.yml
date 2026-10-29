@@ -15,7 +15,7 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
-      - name: Set up Java
+      - name: Set up Java Environment
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
@@ -27,8 +27,11 @@ jobs:
           flutter-version: '3.19.6'
           channel: 'stable'
 
-      - name: Assemble Pistachio App
+      - name: Assemble Clean Flutter Application
         run: |
+          if [ -d "Lib" ]; then
+            mv Lib lib
+          fi
           flutter create --org com.pistachio.orchard pistachio_app
           cd pistachio_app
           
@@ -37,8 +40,8 @@ jobs:
           flutter pub add shamsi_date
           flutter pub add google_fonts
           
-          # پیدا کردن فایل کدهای دارت چه در پوشه Lib باشد چه lib
-          find .. -name "main.dart" -not -path "*/pistachio_app/*" -exec cp {} lib/main.dart \;
+          # کپی قطعی کدهای دارت به درون پروژه استاندارد
+          cp ../lib/main.dart lib/main.dart
           
           flutter build apk --debug
           cp build/app/outputs/flutter-apk/app-debug.apk ../PistachioOrchardApp.apk
