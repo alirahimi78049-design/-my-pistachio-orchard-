@@ -29,9 +29,28 @@ class PistachioApp extends StatelessWidget {
           elevation: 2,
         ),
       ),
-      home: const MainNavigationShell(),
+      home: const AuthGateScreen(),
     );
   }
+}
+
+// ==========================================
+// مدل‌های داده
+// ==========================================
+class UserProfile {
+  final String fullName;
+  final String phoneNumber;
+  final String province;
+  final String city;
+  final String role; // "باغدار" یا "مشاور/مدیر"
+
+  UserProfile({
+    required this.fullName,
+    required this.phoneNumber,
+    required this.province,
+    required this.city,
+    required this.role,
+  });
 }
 
 class OrchardLand {
@@ -64,7 +83,6 @@ class MonthlyRecord {
   String variety;
   String ageGroup;
   int treeAge;
-  List<String> uploadedImages;
   String leafTestDate;
   Map<String, String> leafElements;
   String soilType;
@@ -73,6 +91,7 @@ class MonthlyRecord {
   List<String> irrigationDates;
   String waterTestDate;
   Map<String, String> waterElements;
+  String periodNotes; // کادر یادداشت ۶ ماهه
 
   MonthlyRecord({
     required this.id,
@@ -84,7 +103,6 @@ class MonthlyRecord {
     required this.variety,
     required this.ageGroup,
     required this.treeAge,
-    required this.uploadedImages,
     required this.leafTestDate,
     required this.leafElements,
     required this.soilType,
@@ -93,6 +111,7 @@ class MonthlyRecord {
     required this.irrigationDates,
     required this.waterTestDate,
     required this.waterElements,
+    required this.periodNotes,
   });
 }
 
@@ -114,17 +133,252 @@ class ConsultantItem {
   });
 }
 
+// ==========================================
+// تقویم شمسی سفارشی و بدون محدودیت
+// ==========================================
+Future<String?> showPersianDatePickerDialog(BuildContext context, {int initialYear = 1404}) async {
+  int selYear = initialYear;
+  int selMonth = 7;
+  int selDay = 15;
+
+  final months = [
+    'فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور',
+    'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'
+  ];
+
+  return showDialog<String>(
+    context: context,
+    builder: (ctx) => StatefulBuilder(
+      builder: (context, setStateDialog) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('انتخاب تاریخ شمسی', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  // انتخاب سال بدون محدودیت
+                  DropdownButton<int>(
+                    value: selYear,
+                    items: List.generate(40, (i) => 1380 + i).map((y) {
+                      return DropdownMenuItem(value: y, child: Text('$y'));
+                    }).toList(),
+                    onChanged: (v) => setStateDialog(() => selYear = v!),
+                  ),
+                  // انتخاب ماه
+                  DropdownButton<int>(
+                    value: selMonth,
+                    items: List.generate(12, (i) => i + 1).map((m) {
+                      return DropdownMenuItem(value: m, child: Text(months[m - 1]));
+                    }).toList(),
+                    onChanged: (v) => setStateDialog(() => selMonth = v!),
+                  ),
+                  // انتخاب روز
+                  DropdownButton<int>(
+                    value: selDay,
+                    items: List.generate(selMonth <= 6 ? 31 : (selMonth <= 11 ? 30 : 29), (i) => i + 1).map((d) {
+                      return DropdownMenuItem(value: d, child: Text('$d'));
+                    }).toList(),
+                    onChanged: (v) => setStateDialog(() => selDay = v!),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'تاریخ انتخاب‌شده: $selYear/${selMonth.toString().padLeft(2, '0')}/${selDay.toString().padLeft(2, '0')}',
+                style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF4A7C43)),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, null), child: const Text('انصراف')),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4A7C43), foregroundColor: Colors.white),
+              onPressed: () {
+                final dateStr = '$selYear/${selMonth.toString().padLeft(2, '0')}/${selDay.toString().padLeft(2, '0')}';
+                Navigator.pop(ctx, dateStr);
+              },
+              child: const Text('تأیید'),
+            )
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+// ==========================================
+// صفحه ورود و ثبت مشخصات (Login Screen)
+// ==========================================
+class AuthGateScreen extends StatefulWidget {
+  const AuthGateScreen({super.key});
+
+  @override
+  State<AuthGateScreen> createState() => _AuthGateScreenState();
+}
+
+class _AuthGateScreenState extends State<AuthGateScreen> {
+  final nameController = TextEditingController();
+  final phoneController = TextEditingController();
+  final provinceController = TextEditingController();
+  final cityController = TextEditingController();
+  String selectedRole = 'باغدار';
+
+  @override
+  Widget build(BuildContext context) {
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        body: SingleChildScrollView(
+          child: Column(
+            children: [
+              // بنر گرافیکی با تصویر پسته
+              Stack(
+                children: [
+                  Container(
+                    height: 240,
+                    width: double.infinity,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF4A7C43),
+                      image: DecorationImage(
+                        image: NetworkImage('https://images.unsplash.com/photo-1543257580-7269da773bf5?auto=format&fit=crop&w=800&q=80'),
+                        fit: BoxFit.cover,
+                      ),
+                      borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
+                    ),
+                  ),
+                  Container(
+                    height: 240,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.black.withOpacity(0.6), Colors.transparent],
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
+                      ),
+                      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
+                    ),
+                    alignment: Alignment.bottomCenter,
+                    padding: const EdgeInsets.all(20),
+                    child: const Text(
+                      'سامانه هوشمند باغات پسته',
+                      style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+              Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('ثبت اطلاعات کاربری و ورود', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF4E342E))),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(labelText: 'نام و نام خانوادگی *', border: OutlineInputBorder()),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: phoneController,
+                      keyboardType: TextInputType.phone,
+                      decoration: const InputDecoration(labelText: 'شماره همراه *', border: OutlineInputBorder()),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: provinceController,
+                            decoration: const InputDecoration(labelText: 'استان *', border: OutlineInputBorder()),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            controller: cityController,
+                            decoration: const InputDecoration(labelText: 'شهر / منطقه *', border: OutlineInputBorder()),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: selectedRole,
+                      items: ['باغدار', 'مشاور/مدیر'].map((r) => DropdownMenuItem(value: r, child: Text('نقش: $r'))).toList(),
+                      onChanged: (v) => setState(() => selectedRole = v!),
+                      decoration: const InputDecoration(border: OutlineInputBorder()),
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF4A7C43),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        onPressed: _handleLogin,
+                        child: const Text('ورود به سامانه', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _handleLogin() {
+    if (nameController.text.trim().isEmpty ||
+        phoneController.text.trim().isEmpty ||
+        provinceController.text.trim().isEmpty ||
+        cityController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('لطفاً کلیه فیلدهای ستاره‌دار را تکمیل نمایید.')),
+      );
+      return;
+    }
+
+    final user = UserProfile(
+      fullName: nameController.text.trim(),
+      phoneNumber: phoneController.text.trim(),
+      province: provinceController.text.trim(),
+      city: cityController.text.trim(),
+      role: selectedRole,
+    );
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (ctx) => MainNavigationShell(currentUser: user)),
+    );
+  }
+}
+
+// ==========================================
+// پوسته اصلی سیستم با تفکیک نقش و یادداشت‌ها
+// ==========================================
 class MainNavigationShell extends StatefulWidget {
-  const MainNavigationShell({super.key});
+  final UserProfile currentUser;
+
+  const MainNavigationShell({super.key, required this.currentUser});
 
   @override
   State<MainNavigationShell> createState() => _MainNavigationShellState();
 }
 
 class _MainNavigationShellState extends State<MainNavigationShell> {
-  bool isConsultantMode = false;
   int selectedYear = 1404;
   final List<int> availableYears = [1402, 1403, 1404, 1405];
+  final Map<int, String> yearlyNotes = {
+    1404: 'بارندگی مناسب پاییزه - برنامه کودی پتاس و سولفات آمونیوم در دستور کار',
+  };
 
   final List<OrchardLand> lands = [
     OrchardLand(
@@ -167,61 +421,49 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
 
   @override
   Widget build(BuildContext context) {
+    final isConsultant = widget.currentUser.role == 'مشاور/مدیر';
+
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
         appBar: AppBar(
-          title: Text(isConsultantMode ? 'کارتابل مشاور کشاورزی' : 'سامانه مدیریت باغات پسته'),
+          title: Text(isConsultant ? 'کارتابل مشاور مدیریت' : 'مدیریت باغات: ${widget.currentUser.fullName}'),
           actions: [
-            Row(
-              children: [
-                Text(
-                  isConsultantMode ? 'مشاور' : 'باغدار',
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                ),
-                Switch(
-                  value: isConsultantMode,
-                  activeColor: Colors.amberAccent,
-                  inactiveThumbColor: Colors.white,
-                  onChanged: (val) {
-                    setState(() {
-                      isConsultantMode = val;
-                    });
-                  },
-                ),
-              ],
+            IconButton(
+              icon: const Icon(Icons.logout),
+              tooltip: 'خروج از حساب',
+              onPressed: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (ctx) => const AuthGateScreen()),
+                );
+              },
             )
           ],
         ),
-        drawer: _buildDrawer(),
-        body: isConsultantMode ? _buildConsultantView() : _buildFarmerView(),
+        drawer: _buildDrawer(isConsultant),
+        body: isConsultant ? _buildConsultantView() : _buildFarmerView(),
       ),
     );
   }
 
-  Widget _buildDrawer() {
+  Widget _buildDrawer(bool isConsultant) {
     return Drawer(
       child: Container(
         color: const Color(0xFFF9F6F0),
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            DrawerHeader(
+            UserAccountsDrawerHeader(
               decoration: const BoxDecoration(color: Color(0xFF4A7C43)),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.eco, color: Colors.white, size: 45),
-                  const SizedBox(height: 10),
-                  Text(
-                    isConsultantMode ? 'پنل اختصاصی مشاور' : 'پنل اختصاصی باغدار',
-                    style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ],
+              currentAccountPicture: const CircleAvatar(
+                backgroundColor: Colors.white,
+                child: Icon(Icons.person, color: Color(0xFF4A7C43), size: 40),
               ),
+              accountName: Text(widget.currentUser.fullName, style: const TextStyle(fontWeight: FontWeight.bold)),
+              accountEmail: Text('${widget.currentUser.role} | ${widget.currentUser.province} - ${widget.currentUser.city}'),
             ),
-            if (!isConsultantMode) ...[
+            if (!isConsultant) ...[
               _drawerItem(Icons.add_location_alt, 'افزودن زمین', () {
                 Navigator.pop(context);
                 _openAddLandDialog();
@@ -249,11 +491,11 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                 }
               }),
             ] else ...[
-              _drawerItem(Icons.people_alt, 'کشاورزان من', () => Navigator.pop(context)),
-              _drawerItem(Icons.notifications_active, 'اعلان‌های من', () {
+              _drawerItem(Icons.people_alt, 'کشاورزان تحت پوشش', () => Navigator.pop(context)),
+              _drawerItem(Icons.notifications_active, 'اعلان‌ها و توصیه‌ها', () {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('اعلان جدیدی وجود ندارد.')),
+                  const SnackBar(content: Text('پیام و اعلان جدیدی ثبت نشده است.')),
                 );
               }),
             ]
@@ -279,11 +521,11 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // بخش انتخاب سال و دکمه یادداشت سالانه
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(10),
@@ -291,7 +533,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                 ),
                 child: Row(
                   children: [
-                    const Text('سال زراعی: ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    const Text('سال: ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                     DropdownButton<int>(
                       value: selectedYear,
                       underline: const SizedBox(),
@@ -302,32 +544,40 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                         );
                       }).toList(),
                       onChanged: (newYear) {
-                        if (newYear != null) {
-                          setState(() {
-                            selectedYear = newYear;
-                          });
-                        }
+                        if (newYear != null) setState(() => selectedYear = newYear);
                       },
                     ),
                   ],
                 ),
               ),
+              const SizedBox(width: 8),
+              // دکمه یادداشت سال
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF6D4C41),
+                  side: const BorderSide(color: Color(0xFF6D4C41)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: _openYearlyNoteDialog,
+                icon: const Icon(Icons.note_alt, size: 18),
+                label: const Text('یادداشت سال'),
+              ),
+              const Spacer(),
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF4A7C43),
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 ),
                 onPressed: _openAddLandDialog,
-                icon: const Icon(Icons.add, size: 20),
-                label: const Text('افزودن زمین', style: TextStyle(fontWeight: FontWeight.bold)),
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('افزودن زمین'),
               ),
             ],
           ),
           const SizedBox(height: 20),
           const Text(
-            'زمین‌های ثبت‌شده',
+            'زمین‌های ثبت‌شده من',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF4E342E)),
           ),
           const SizedBox(height: 12),
@@ -343,6 +593,45 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
               },
             ),
         ],
+      ),
+    );
+  }
+
+  void _openYearlyNoteDialog() {
+    final noteCtrl = TextEditingController(text: yearlyNotes[selectedYear] ?? '');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text('یادداشت و سوابق سال زراعی $selectedYear', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          content: TextField(
+            controller: noteCtrl,
+            maxLines: 4,
+            decoration: const InputDecoration(
+              hintText: 'توضیحات کلی، تغییرات آب‌وهوایی، برنامه کودی سال یا خسارت‌های محیطی را یادداشت کنید...',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('انصراف')),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4A7C43), foregroundColor: Colors.white),
+              onPressed: () {
+                setState(() {
+                  yearlyNotes[selectedYear] = noteCtrl.text.trim();
+                });
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('یادداشت سال با موفقیت ذخیره شد.')),
+                );
+              },
+              child: const Text('ذخیره یادداشت'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -503,11 +792,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                   const SizedBox(height: 16),
                   TextField(
                     controller: nameCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'نام زمین *',
-                      border: OutlineInputBorder(),
-                      focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Color(0xFF4A7C43), width: 2)),
-                    ),
+                    decoration: const InputDecoration(labelText: 'نام زمین *', border: OutlineInputBorder()),
                   ),
                   const SizedBox(height: 12),
                   Row(
@@ -517,11 +802,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                         child: TextField(
                           controller: areaCtrl,
                           keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: 'مقدار مساحت *',
-                            border: OutlineInputBorder(),
-                            focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Color(0xFF4A7C43), width: 2)),
-                          ),
+                          decoration: const InputDecoration(labelText: 'مقدار مساحت *', border: OutlineInputBorder()),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -569,10 +850,6 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                           onPressed: () {
                             if (nameCtrl.text.trim().isEmpty || areaCtrl.text.trim().isEmpty) {
                               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('لطفاً فیلدهای اجباری را پر کنید.')));
-                              return;
-                            }
-                            if (lands.any((l) => !l.isDeleted && l.name == nameCtrl.text.trim())) {
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('نام زمین انتخاب‌شده تکراری است. لطفاً نام دیگری انتخاب کنید.')));
                               return;
                             }
                             final double? val = double.tryParse(areaCtrl.text.trim());
@@ -656,9 +933,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                   const SizedBox(width: 8),
                   TextButton(
                     onPressed: () {
-                      setState(() {
-                        land.isDeleted = true;
-                      });
+                      setState(() => land.isDeleted = true);
                       Navigator.pop(ctx);
                     },
                     child: const Text('حذف زمین', style: TextStyle(color: Colors.red)),
@@ -706,9 +981,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         builder: (ctx) => Directionality(
           textDirection: TextDirection.rtl,
           child: Scaffold(
-            appBar: AppBar(
-              title: Text('تاریخچه: ${land.name} ($selectedYear)'),
-            ),
+            appBar: AppBar(title: Text('تاریخچه: ${land.name} ($selectedYear)')),
             body: landRecords.isEmpty
                 ? _buildEmptyState('برای این سال اطلاعاتی ثبت نشده است.')
                 : SingleChildScrollView(
@@ -727,6 +1000,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                             DataColumn(label: Text('خاک (Ec, pH, SAR)', style: TextStyle(fontWeight: FontWeight.bold))),
                             DataColumn(label: Text('آب (Ec, TDS)', style: TextStyle(fontWeight: FontWeight.bold))),
                             DataColumn(label: Text('آبیاری', style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text('یادداشت دوره', style: TextStyle(fontWeight: FontWeight.bold))),
                             DataColumn(label: Text('عملیات', style: TextStyle(fontWeight: FontWeight.bold))),
                           ],
                           rows: List.generate(landRecords.length, (idx) {
@@ -750,6 +1024,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                                     )).toList(),
                                   ),
                                 ),
+                                DataCell(Text(r.periodNotes.isNotEmpty ? r.periodNotes : '-')),
                                 DataCell(
                                   IconButton(
                                     icon: const Icon(Icons.edit, color: Colors.blueAccent, size: 20),
@@ -757,7 +1032,6 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                                       Navigator.pop(ctx);
                                       _openSelfDeclarationForm(land, r);
                                     },
-                                    tooltip: 'ویرایش رکورد',
                                   ),
                                 ),
                               ],
@@ -779,10 +1053,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'کارتابل مدیریت زمین‌های کشاورزان تحت پوشش',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF4E342E)),
-          ),
+          const Text('کارتابل مدیریت زمین‌های کشاورزان تحت نظارت', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF4E342E))),
           const SizedBox(height: 12),
           Expanded(
             child: SingleChildScrollView(
@@ -793,8 +1064,8 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                   DataColumn(label: Text('نام باغدار', style: TextStyle(fontWeight: FontWeight.bold))),
                   DataColumn(label: Text('شناسه', style: TextStyle(fontWeight: FontWeight.bold))),
                   DataColumn(label: Text('نام زمین', style: TextStyle(fontWeight: FontWeight.bold))),
-                  DataColumn(label: Text('جزئیات', style: TextStyle(fontWeight: FontWeight.bold))),
-                  DataColumn(label: Text('عملیات بررسی', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('مشاهده جزئیات', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('وضعیت بررسی', style: TextStyle(fontWeight: FontWeight.bold))),
                 ],
                 rows: consultantList.map<DataRow>((c) {
                   return DataRow(cells: [
@@ -805,12 +1076,8 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                     DataCell(
                       IconButton(
                         icon: const Icon(Icons.remove_red_eye, color: Color(0xFF4A7C43)),
-                        tooltip: 'مشاهده تاریخچه زمین',
                         onPressed: () {
-                          final targetLand = lands.firstWhere(
-                            (l) => l.id == c.landId,
-                            orElse: () => lands.first,
-                          );
+                          final targetLand = lands.firstWhere((l) => l.id == c.landId, orElse: () => lands.first);
                           _openHistoryView(targetLand);
                         },
                       ),
@@ -833,11 +1100,9 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                         }).toList(),
                         onChanged: (newStatus) {
                           if (newStatus != null) {
-                            setState(() {
-                              c.status = newStatus;
-                            });
+                            setState(() => c.status = newStatus);
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('وضعیت زمین ${c.landName} به "$newStatus" تغییر کرد.')),
+                              SnackBar(content: Text('وضعیت به "$newStatus" تغییر یافت.')),
                             );
                           }
                         },
@@ -869,7 +1134,9 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   }
 }
 
-// کلاس اختصاصی صفحه خوداظهاری ماهانه (فقط یک‌بار در کل پروژه تعریف شده)
+// ==========================================
+// فرم خوداظهاری مرحله‌ای و تقویم شمسی
+// ==========================================
 class SelfDeclarationScreen extends StatefulWidget {
   final OrchardLand land;
   final int year;
@@ -901,15 +1168,21 @@ class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> {
   String variety = 'اکبری';
   String ageGroup = 'بارور (بیش از 8 سال)';
   final treeAgeCtrl = TextEditingController(text: '12');
+
   final leafDateCtrl = TextEditingController(text: '1404/07/15');
   final Map<String, TextEditingController> leafCtrls = {};
 
   String soilType = 'رسی';
   final soilDateCtrl = TextEditingController(text: '1404/07/10');
   final Map<String, TextEditingController> soilCtrls = {};
+
+  // لیست تاریخ‌های آبیاری
   final List<String> irrigationDates = <String>['1404/07/04', '1404/07/18'];
+
   final waterDateCtrl = TextEditingController(text: '1404/07/12');
   final Map<String, TextEditingController> waterCtrls = {};
+
+  final periodNotesCtrl = TextEditingController();
 
   @override
   void initState() {
@@ -935,6 +1208,12 @@ class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> {
       ageGroup = widget.recordToEdit!.ageGroup;
       countType = widget.recordToEdit!.countType;
       soilType = widget.recordToEdit!.soilType;
+      leafDateCtrl.text = widget.recordToEdit!.leafTestDate;
+      soilDateCtrl.text = widget.recordToEdit!.soilTestDate;
+      waterDateCtrl.text = widget.recordToEdit!.waterTestDate;
+      irrigationDates.clear();
+      irrigationDates.addAll(widget.recordToEdit!.irrigationDates);
+      periodNotesCtrl.text = widget.recordToEdit!.periodNotes;
     }
   }
 
@@ -954,9 +1233,9 @@ class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildStepIndicator(0, '۱. انتخاب ماه'),
+                  _buildStepIndicator(0, '۱. ماه'),
                   _buildStepIndicator(1, '۲. درخت و برگ'),
-                  _buildStepIndicator(2, '۳. خاک و آب'),
+                  _buildStepIndicator(2, '۳. خاک، آب و آبیاری'),
                 ],
               ),
             ),
@@ -1113,7 +1392,22 @@ class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> {
             decoration: const InputDecoration(labelText: 'سن دقیق درخت (سال) *', border: OutlineInputBorder()),
           ),
           const Divider(height: 32),
-          const Text('عناصر آزمایش برگ (درصد % و PPM)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF4E342E))),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('تاریخ آزمایش برگ:', style: TextStyle(fontWeight: FontWeight.bold)),
+              TextButton.icon(
+                icon: const Icon(Icons.calendar_month, color: Color(0xFF4A7C43)),
+                label: Text(leafDateCtrl.text),
+                onPressed: () async {
+                  final picked = await showPersianDatePickerDialog(context);
+                  if (picked != null) setState(() => leafDateCtrl.text = picked);
+                },
+              )
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Text('عناصر آزمایش برگ (درصد % و PPM):', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF4E342E))),
           const SizedBox(height: 12),
           Wrap(
             spacing: 8,
@@ -1144,7 +1438,7 @@ class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('آزمایش خاک و دوره‌های آبیاری', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF4E342E))),
+          const Text('آزمایش خاک', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF4E342E))),
           const SizedBox(height: 12),
           Row(
             children: [
@@ -1158,9 +1452,13 @@ class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> {
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: TextField(
-                  controller: soilDateCtrl,
-                  decoration: const InputDecoration(labelText: 'تاریخ آزمایش خاک', border: OutlineInputBorder()),
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.calendar_month, size: 16),
+                  label: Text(soilDateCtrl.text, style: const TextStyle(fontSize: 11)),
+                  onPressed: () async {
+                    final picked = await showPersianDatePickerDialog(context);
+                    if (picked != null) setState(() => soilDateCtrl.text = picked);
+                  },
                 ),
               ),
             ],
@@ -1186,8 +1484,63 @@ class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> {
             }).toList(),
           ),
           const Divider(height: 32),
-          const Text('کیفیت آب و دوره‌های آبیاری', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF4E342E))),
-          const SizedBox(height: 12),
+
+          // بخش دوره‌های آبیاری تعاملی و پویا
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('دوره‌های آبیاری این ماه:', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF4E342E))),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF5A8F53),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                ),
+                icon: const Icon(Icons.add, size: 16),
+                label: const Text('افزودن تاریخ آبیاری', style: TextStyle(fontSize: 12)),
+                onPressed: () async {
+                  final pickedDate = await showPersianDatePickerDialog(context);
+                  if (pickedDate != null && !irrigationDates.contains(pickedDate)) {
+                    setState(() {
+                      irrigationDates.add(pickedDate);
+                    });
+                  }
+                },
+              )
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            children: irrigationDates.map<Widget>((date) {
+              return Chip(
+                label: Text(date, style: const TextStyle(fontSize: 12)),
+                deleteIcon: const Icon(Icons.close, size: 16),
+                onDeleted: () {
+                  setState(() {
+                    irrigationDates.remove(date);
+                  });
+                },
+              );
+            }).toList(),
+          ),
+
+          const Divider(height: 32),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('کیفیت آب و شاخص‌ها:', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF4E342E))),
+              TextButton.icon(
+                icon: const Icon(Icons.calendar_month, color: Color(0xFF4A7C43)),
+                label: Text(waterDateCtrl.text),
+                onPressed: () async {
+                  final picked = await showPersianDatePickerDialog(context);
+                  if (picked != null) setState(() => waterDateCtrl.text = picked);
+                },
+              )
+            ],
+          ),
+          const SizedBox(height: 8),
           Wrap(
             spacing: 8,
             children: waterCtrls.entries.map<Widget>((e) {
@@ -1203,6 +1556,18 @@ class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> {
                 ),
               );
             }).toList(),
+          ),
+
+          const SizedBox(height: 24),
+          const Text('یادداشت و مشاهدات این دوره (۶ ماهه):', style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          TextField(
+            controller: periodNotesCtrl,
+            maxLines: 3,
+            decoration: const InputDecoration(
+              hintText: 'علائم ظاهری برگ و تنه، میزان پیوندها، علائم آفت و یادداشت‌های مربوط به این ماه را ثبت کنید...',
+              border: OutlineInputBorder(),
+            ),
           ),
         ],
       ),
@@ -1234,7 +1599,6 @@ class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> {
       variety: variety,
       ageGroup: ageGroup,
       treeAge: int.tryParse(treeAgeCtrl.text) ?? 0,
-      uploadedImages: [],
       leafTestDate: leafDateCtrl.text,
       leafElements: leafCtrls.map((k, v) => MapEntry(k, v.text)),
       soilType: soilType,
@@ -1243,6 +1607,7 @@ class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> {
       irrigationDates: irrigationDates,
       waterTestDate: waterDateCtrl.text,
       waterElements: waterCtrls.map((k, v) => MapEntry(k, v.text)),
+      periodNotes: periodNotesCtrl.text.trim(),
     );
 
     widget.onSave(newRecord);
@@ -1252,4 +1617,3 @@ class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> {
     );
   }
 }
- 
