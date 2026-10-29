@@ -175,7 +175,10 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           actions: [
             Row(
               children: [
-                Text(isConsultantMode ? 'مشاور' : 'باغدار', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                Text(
+                  isConsultantMode ? 'مشاور' : 'باغدار',
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                ),
                 Switch(
                   value: isConsultantMode,
                   activeColor: Colors.amberAccent,
@@ -715,8 +718,6 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),
                         child: DataTable(
-                          headingRowColor: MaterialStateProperty.all(const Color(0xFFD7E7D5)),
-                          border: TableBorder.all(color: Colors.grey.shade300),
                           columns: const [
                             DataColumn(label: Text('ردیف', style: TextStyle(fontWeight: FontWeight.bold))),
                             DataColumn(label: Text('ماه', style: TextStyle(fontWeight: FontWeight.bold))),
@@ -787,8 +788,6 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: DataTable(
-                headingRowColor: MaterialStateProperty.all(const Color(0xFFEFEBE9)),
-                border: TableBorder.all(color: Colors.grey.shade300),
                 columns: const [
                   DataColumn(label: Text('ردیف', style: TextStyle(fontWeight: FontWeight.bold))),
                   DataColumn(label: Text('نام باغدار', style: TextStyle(fontWeight: FontWeight.bold))),
@@ -870,6 +869,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   }
 }
 
+// کلاس اختصاصی صفحه خوداظهاری ماهانه (فقط یک‌بار در کل پروژه تعریف شده)
 class SelfDeclarationScreen extends StatefulWidget {
   final OrchardLand land;
   final int year;
@@ -890,8 +890,8 @@ class SelfDeclarationScreen extends StatefulWidget {
   State<SelfDeclarationScreen> createState() => _SelfDeclarationScreenState();
 }
 
-class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> {
+  int currentStep = 0;
 
   String selectedMonth = 'مهر';
   final List<String> months = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
@@ -914,7 +914,6 @@ class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> with Sing
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
 
     for (var k in ['N', 'P', 'K', 'Ca', 'Mg', 'Na', 'Cl', 'B', 'Cu', 'Zn', 'Fe', 'Mn']) {
       leafCtrls[k] = TextEditingController(text: widget.recordToEdit?.leafElements[k] ?? '1.2');
@@ -946,44 +945,97 @@ class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> with Sing
       child: Scaffold(
         appBar: AppBar(
           title: Text(widget.recordToEdit != null ? 'ویرایش اطلاعات دوره' : 'ثبت خوداظهاری - ${widget.land.name}'),
-          bottom: TabBar(
-            controller: _tabController,
-            indicatorColor: Colors.amberAccent,
-            labelColor: Colors.white,
-            unselectedLabelColor: Colors.white70,
-            tabs: const [
-              Tab(text: '۱. انتخاب ماه'),
-              Tab(text: '۲. درخت و برگ'),
-              Tab(text: '۳. خاک و آب'),
-            ],
-          ),
         ),
-        body: TabBarView(
-          controller: _tabController,
+        body: Column(
           children: [
-            _buildMonthTab(),
-            _buildTreeTab(),
-            _buildSoilWaterTab(),
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              color: Colors.white,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildStepIndicator(0, '۱. انتخاب ماه'),
+                  _buildStepIndicator(1, '۲. درخت و برگ'),
+                  _buildStepIndicator(2, '۳. خاک و آب'),
+                ],
+              ),
+            ),
+            Expanded(
+              child: IndexedStack(
+                index: currentStep,
+                children: [
+                  _buildMonthStep(),
+                  _buildTreeStep(),
+                  _buildSoilWaterStep(),
+                ],
+              ),
+            ),
           ],
         ),
         bottomNavigationBar: Container(
           padding: const EdgeInsets.all(16),
           color: Colors.white,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4A7C43),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
-            onPressed: _submitRecord,
-            child: const Text('ثبت نهایی اطلاعات دوره', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          child: Row(
+            children: [
+              if (currentStep > 0)
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => setState(() => currentStep--),
+                    child: const Text('مرحله قبل'),
+                  ),
+                ),
+              if (currentStep > 0) const SizedBox(width: 8),
+              Expanded(
+                flex: 2,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4A7C43),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  onPressed: () {
+                    if (currentStep < 2) {
+                      setState(() => currentStep++);
+                    } else {
+                      _submitRecord();
+                    }
+                  },
+                  child: Text(
+                    currentStep == 2 ? 'ثبت نهایی اطلاعات دوره' : 'مرحله بعد',
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildMonthTab() {
+  Widget _buildStepIndicator(int stepIndex, String title) {
+    final isActive = currentStep == stepIndex;
+    return GestureDetector(
+      onTap: () => setState(() => currentStep = stepIndex),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isActive ? const Color(0xFF5A8F53) : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          title,
+          style: TextStyle(
+            color: isActive ? Colors.white : Colors.black54,
+            fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+            fontSize: 12,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMonthStep() {
     return Padding(
       padding: const EdgeInsets.all(20.0),
       child: Column(
@@ -999,19 +1051,12 @@ class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> with Sing
             },
             decoration: const InputDecoration(border: OutlineInputBorder(), labelText: 'ماه شمسی'),
           ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF5A8F53), foregroundColor: Colors.white),
-            onPressed: () => _tabController.animateTo(1),
-            icon: const Icon(Icons.arrow_forward),
-            label: const Text('مرحله بعد: ورود اطلاعات درختان'),
-          )
         ],
       ),
     );
   }
 
-  Widget _buildTreeTab() {
+  Widget _buildTreeStep() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -1093,7 +1138,7 @@ class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> with Sing
     );
   }
 
-  Widget _buildSoilWaterTab() {
+  Widget _buildSoilWaterStep() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -1172,4 +1217,39 @@ class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> with Sing
         r.id != widget.recordToEdit?.id);
 
     if (isDuplicate) {
-      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('برای سال منتخب شما اطلاعات ماه $selectedMonth ذخیره شده است لطفاً مجدداً انتخاب نمایید')),
+      );
+      setState(() => currentStep = 0);
+      return;
+    }
+
+    final newRecord = MonthlyRecord(
+      id: widget.recordToEdit?.id ?? 'REC-${DateTime.now().millisecondsSinceEpoch}',
+      landId: widget.land.id,
+      solarYear: widget.year,
+      month: selectedMonth,
+      countType: countType,
+      treeCount: int.tryParse(treeCountCtrl.text) ?? 0,
+      variety: variety,
+      ageGroup: ageGroup,
+      treeAge: int.tryParse(treeAgeCtrl.text) ?? 0,
+      uploadedImages: [],
+      leafTestDate: leafDateCtrl.text,
+      leafElements: leafCtrls.map((k, v) => MapEntry(k, v.text)),
+      soilType: soilType,
+      soilTestDate: soilDateCtrl.text,
+      soilElements: soilCtrls.map((k, v) => MapEntry(k, v.text)),
+      irrigationDates: irrigationDates,
+      waterTestDate: waterDateCtrl.text,
+      waterElements: waterCtrls.map((k, v) => MapEntry(k, v.text)),
+    );
+
+    widget.onSave(newRecord);
+    Navigator.pop(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('اطلاعات با موفقیت ذخیره گردید.')),
+    );
+  }
+}
+ 
