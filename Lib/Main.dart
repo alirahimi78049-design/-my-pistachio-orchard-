@@ -11,7 +11,7 @@ class PistachioApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'سامانه مدیریت باغات پسته',
+      title: 'سامانه هوشمند باغات پسته',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
@@ -89,9 +89,8 @@ class MonthlyRecord {
   String soilTestDate;
   Map<String, String> soilElements;
   List<String> irrigationDates;
-  String waterTestDate;
   Map<String, String> waterElements;
-  String periodNotes; // کادر یادداشت ۶ ماهه
+  String periodNotes;
 
   MonthlyRecord({
     required this.id,
@@ -109,7 +108,6 @@ class MonthlyRecord {
     required this.soilTestDate,
     required this.soilElements,
     required this.irrigationDates,
-    required this.waterTestDate,
     required this.waterElements,
     required this.periodNotes,
   });
@@ -133,9 +131,7 @@ class ConsultantItem {
   });
 }
 
-// ==========================================
-// تقویم شمسی سفارشی و بدون محدودیت
-// ==========================================
+// تقویم شمسی پویا
 Future<String?> showPersianDatePickerDialog(BuildContext context, {int initialYear = 1404}) async {
   int selYear = initialYear;
   int selMonth = 7;
@@ -160,15 +156,13 @@ Future<String?> showPersianDatePickerDialog(BuildContext context, {int initialYe
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  // انتخاب سال بدون محدودیت
                   DropdownButton<int>(
                     value: selYear,
-                    items: List.generate(40, (i) => 1380 + i).map((y) {
+                    items: List.generate(45, (i) => 1380 + i).map((y) {
                       return DropdownMenuItem(value: y, child: Text('$y'));
                     }).toList(),
                     onChanged: (v) => setStateDialog(() => selYear = v!),
                   ),
-                  // انتخاب ماه
                   DropdownButton<int>(
                     value: selMonth,
                     items: List.generate(12, (i) => i + 1).map((m) {
@@ -176,7 +170,6 @@ Future<String?> showPersianDatePickerDialog(BuildContext context, {int initialYe
                     }).toList(),
                     onChanged: (v) => setStateDialog(() => selMonth = v!),
                   ),
-                  // انتخاب روز
                   DropdownButton<int>(
                     value: selDay,
                     items: List.generate(selMonth <= 6 ? 31 : (selMonth <= 11 ? 30 : 29), (i) => i + 1).map((d) {
@@ -211,7 +204,7 @@ Future<String?> showPersianDatePickerDialog(BuildContext context, {int initialYe
 }
 
 // ==========================================
-// صفحه ورود و ثبت مشخصات (Login Screen)
+// صفحه ورود هوشمند با استان و شهر و تایید مدیر
 // ==========================================
 class AuthGateScreen extends StatefulWidget {
   const AuthGateScreen({super.key});
@@ -223,9 +216,30 @@ class AuthGateScreen extends StatefulWidget {
 class _AuthGateScreenState extends State<AuthGateScreen> {
   final nameController = TextEditingController();
   final phoneController = TextEditingController();
-  final provinceController = TextEditingController();
-  final cityController = TextEditingController();
+  final adminCodeController = TextEditingController();
+
+  final Map<String, List<String>> iranProvinces = {
+    'کرمان': ['رفسنجان', 'سیرجان', 'انار', 'زرند', 'شهربابک', 'کرمان'],
+    'یزد': ['مهریز', 'خاتم', 'ابرکوه', 'تفت', 'یزد'],
+    'خراسان رضوی': ['مه ولات', 'بردسکن', 'خلیل آباد', 'سبزوار', 'مشهد'],
+    'خراسان جنوبی': ['بشرویه', 'فردوس', 'سرایان', 'بیرجند'],
+    'سمنان': ['دامغان', 'شاهرود', 'سمنان'],
+    'فارس': ['نی ریز', 'سروستان', 'شیراز'],
+    'مرکزی': ['زرندیه', 'ساوه', 'اراک'],
+    'قزوین': ['بوئین زهرا', 'قزوین'],
+    'قم': ['قم'],
+    'تهران': ['ورامین', 'تهران'],
+  };
+
+  String selectedProvince = 'کرمان';
+  late String selectedCity;
   String selectedRole = 'باغدار';
+
+  @override
+  void initState() {
+    super.initState();
+    selectedCity = iranProvinces[selectedProvince]!.first;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -235,11 +249,10 @@ class _AuthGateScreenState extends State<AuthGateScreen> {
         body: SingleChildScrollView(
           child: Column(
             children: [
-              // بنر گرافیکی با تصویر پسته
               Stack(
                 children: [
                   Container(
-                    height: 240,
+                    height: 230,
                     width: double.infinity,
                     decoration: const BoxDecoration(
                       color: Color(0xFF4A7C43),
@@ -251,10 +264,10 @@ class _AuthGateScreenState extends State<AuthGateScreen> {
                     ),
                   ),
                   Container(
-                    height: 240,
+                    height: 230,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [Colors.black.withOpacity(0.6), Colors.transparent],
+                        colors: [Colors.black.withOpacity(0.65), Colors.transparent],
                         begin: Alignment.bottomCenter,
                         end: Alignment.topCenter,
                       ),
@@ -284,21 +297,39 @@ class _AuthGateScreenState extends State<AuthGateScreen> {
                     TextField(
                       controller: phoneController,
                       keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(labelText: 'شماره همراه *', border: OutlineInputBorder()),
+                      maxLength: 11,
+                      decoration: const InputDecoration(
+                        labelText: 'شماره همراه (مثال: 09123456789) *',
+                        border: OutlineInputBorder(),
+                        counterText: '',
+                      ),
                     ),
                     const SizedBox(height: 12),
                     Row(
                       children: [
                         Expanded(
-                          child: TextField(
-                            controller: provinceController,
+                          child: DropdownButtonFormField<String>(
+                            value: selectedProvince,
+                            items: iranProvinces.keys.map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
+                            onChanged: (prov) {
+                              if (prov != null) {
+                                setState(() {
+                                  selectedProvince = prov;
+                                  selectedCity = iranProvinces[prov]!.first;
+                                });
+                              }
+                            },
                             decoration: const InputDecoration(labelText: 'استان *', border: OutlineInputBorder()),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: TextField(
-                            controller: cityController,
+                          child: DropdownButtonFormField<String>(
+                            value: selectedCity,
+                            items: iranProvinces[selectedProvince]!.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                            onChanged: (c) {
+                              if (c != null) setState(() => selectedCity = c);
+                            },
                             decoration: const InputDecoration(labelText: 'شهر / منطقه *', border: OutlineInputBorder()),
                           ),
                         ),
@@ -308,9 +339,24 @@ class _AuthGateScreenState extends State<AuthGateScreen> {
                     DropdownButtonFormField<String>(
                       value: selectedRole,
                       items: ['باغدار', 'مشاور/مدیر'].map((r) => DropdownMenuItem(value: r, child: Text('نقش: $r'))).toList(),
-                      onChanged: (v) => setState(() => selectedRole = v!),
+                      onChanged: (v) {
+                        setState(() => selectedRole = v!);
+                      },
                       decoration: const InputDecoration(border: OutlineInputBorder()),
                     ),
+                    if (selectedRole == 'مشاور/مدیر') ...[
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: adminCodeController,
+                        obscureText: true,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'کد امنیتی تأیید مدیر (Passcode) *',
+                          hintText: 'کد احراز صلاحیت مشاور',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 24),
                     SizedBox(
                       width: double.infinity,
@@ -336,21 +382,32 @@ class _AuthGateScreenState extends State<AuthGateScreen> {
   }
 
   void _handleLogin() {
-    if (nameController.text.trim().isEmpty ||
-        phoneController.text.trim().isEmpty ||
-        provinceController.text.trim().isEmpty ||
-        cityController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('لطفاً کلیه فیلدهای ستاره‌دار را تکمیل نمایید.')),
-      );
+    final name = nameController.text.trim();
+    final phone = phoneController.text.trim();
+
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('لطفاً نام و نام خانوادگی را وارد کنید.')));
       return;
     }
 
+    final phoneRegex = RegExp(r'^09[0-9]{9}$');
+    if (!phoneRegex.hasMatch(phone)) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('شماره همراه باید ۱۱ رقم بوده و با ۰۹ شروع شود.')));
+      return;
+    }
+
+    if (selectedRole == 'مشاور/مدیر') {
+      if (adminCodeController.text.trim() != '1404') {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('کد امنیتی تأیید مدیر نادرست است. ورود مجاز نیست.')));
+        return;
+      }
+    }
+
     final user = UserProfile(
-      fullName: nameController.text.trim(),
-      phoneNumber: phoneController.text.trim(),
-      province: provinceController.text.trim(),
-      city: cityController.text.trim(),
+      fullName: name,
+      phoneNumber: phone,
+      province: selectedProvince,
+      city: selectedCity,
       role: selectedRole,
     );
 
@@ -362,7 +419,7 @@ class _AuthGateScreenState extends State<AuthGateScreen> {
 }
 
 // ==========================================
-// پوسته اصلی سیستم با تفکیک نقش و یادداشت‌ها
+// صفحه اصلی بدون اورفلو و با سال نامحدود
 // ==========================================
 class MainNavigationShell extends StatefulWidget {
   final UserProfile currentUser;
@@ -375,7 +432,8 @@ class MainNavigationShell extends StatefulWidget {
 
 class _MainNavigationShellState extends State<MainNavigationShell> {
   int selectedYear = 1404;
-  final List<int> availableYears = [1402, 1403, 1404, 1405];
+  final List<int> allAvailableYears = List.generate(45, (index) => 1380 + index);
+
   final Map<int, String> yearlyNotes = {
     1404: 'بارندگی مناسب پاییزه - برنامه کودی پتاس و سولفات آمونیوم در دستور کار',
   };
@@ -469,7 +527,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                 _openAddLandDialog();
               }),
               _drawerItem(Icons.landscape, 'زمین‌های من', () => Navigator.pop(context)),
-              _drawerItem(Icons.assignment, 'خوداظهاری', () {
+              _drawerItem(Icons.assignment, 'اقدامات گذشته / سال قبل', () {
                 Navigator.pop(context);
                 final nonDeleted = lands.where((l) => !l.isDeleted).toList();
                 if (nonDeleted.isNotEmpty) {
@@ -492,12 +550,6 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
               }),
             ] else ...[
               _drawerItem(Icons.people_alt, 'کشاورزان تحت پوشش', () => Navigator.pop(context)),
-              _drawerItem(Icons.notifications_active, 'اعلان‌ها و توصیه‌ها', () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('پیام و اعلان جدیدی ثبت نشده است.')),
-                );
-              }),
             ]
           ],
         ),
@@ -513,6 +565,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     );
   }
 
+  // حل مشکل سرریز (نوار سیاه و زرد) با Wrap
   Widget _buildFarmerView() {
     final activeLands = lands.where((l) => !l.isDeleted).toList();
 
@@ -521,26 +574,32 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // بخش انتخاب سال و دکمه یادداشت سالانه
-          Row(
+          Wrap(
+            spacing: 6,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            alignment: WrapAlignment.spaceBetween,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                height: 38,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: const Color(0xFF5A8F53)),
                 ),
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text('سال: ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    const Text('سال: ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                     DropdownButton<int>(
                       value: selectedYear,
                       underline: const SizedBox(),
-                      items: availableYears.map((int y) {
+                      isDense: true,
+                      items: allAvailableYears.map((int y) {
                         return DropdownMenuItem<int>(
                           value: y,
-                          child: Text(y.toString(), style: const TextStyle(fontWeight: FontWeight.bold)),
+                          child: Text(y.toString(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                         );
                       }).toList(),
                       onChanged: (newYear) {
@@ -550,35 +609,36 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              // دکمه یادداشت سال
               OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
                   foregroundColor: const Color(0xFF6D4C41),
                   side: const BorderSide(color: Color(0xFF6D4C41)),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                  minimumSize: const Size(0, 38),
                 ),
                 onPressed: _openYearlyNoteDialog,
-                icon: const Icon(Icons.note_alt, size: 18),
-                label: const Text('یادداشت سال'),
+                icon: const Icon(Icons.note_alt, size: 16),
+                label: const Text('یادداشت سال', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
               ),
-              const Spacer(),
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF4A7C43),
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                  minimumSize: const Size(0, 38),
                 ),
                 onPressed: _openAddLandDialog,
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('افزودن زمین'),
+                icon: const Icon(Icons.add, size: 16),
+                label: const Text('افزودن زمین', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 18),
           const Text(
             'زمین‌های ثبت‌شده من',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF4E342E)),
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Color(0xFF4E342E)),
           ),
           const SizedBox(height: 12),
           if (activeLands.isEmpty)
@@ -606,7 +666,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         textDirection: TextDirection.rtl,
         child: AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text('یادداشت و سوابق سال زراعی $selectedYear', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          title: Text('یادداشت و سوابق سال زراعی $selectedYear', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
           content: TextField(
             controller: noteCtrl,
             maxLines: 4,
@@ -624,11 +684,9 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                   yearlyNotes[selectedYear] = noteCtrl.text.trim();
                 });
                 Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('یادداشت سال با موفقیت ذخیره شد.')),
-                );
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('یادداشت سال با موفقیت ذخیره شد.')));
               },
-              child: const Text('ذخیره یادداشت'),
+              child: const Text('ذخیره'),
             ),
           ],
         ),
@@ -696,7 +754,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                           padding: const EdgeInsets.symmetric(vertical: 8),
                         ),
                         onPressed: () => _promptSelfDeclaration(land),
-                        child: const Text('خوداظهاری', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        child: const Text('اقدامات گذشته', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -709,7 +767,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                           padding: const EdgeInsets.symmetric(vertical: 8),
                         ),
                         onPressed: () => _openSelfDeclarationForm(land),
-                        child: const Text('ثبت جزئیات', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        child: const Text('ثبت جزئیات', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -722,7 +780,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                           padding: const EdgeInsets.symmetric(vertical: 8),
                         ),
                         onPressed: () => _openHistoryView(land),
-                        child: const Text('تاریخچه', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        child: const Text('تاریخچه', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                       ),
                     ),
                   ],
@@ -743,9 +801,9 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         child: AlertDialog(
           backgroundColor: const Color(0xFFF9F6F0),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('خوداظهاری دوره‌ای', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          title: const Text('اقدامات گذشته / سال قبل', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           content: const Text(
-            'آیا مایل به تکمیل اطلاعات ۶ ماهه گذشته خود هستید؟',
+            'آیا مایل به تکمیل و مشاهده اطلاعات ۶ ماهه و اقدامات گذشته خود هستید؟',
             style: TextStyle(fontSize: 14),
           ),
           actions: [
@@ -903,7 +961,6 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 20, right: 20, top: 20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text('ویرایش مشخصات زمین', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF4E342E))),
               const SizedBox(height: 16),
@@ -1135,7 +1192,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
 }
 
 // ==========================================
-// فرم خوداظهاری مرحله‌ای و تقویم شمسی
+// فرم اقدامات گذشته / سال قبل (با اصلاح هکتار/تعداد و حذف تاریخ آب)
 // ==========================================
 class SelfDeclarationScreen extends StatefulWidget {
   final OrchardLand land;
@@ -1163,7 +1220,8 @@ class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> {
   String selectedMonth = 'مهر';
   final List<String> months = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
 
-  String countType = 'هکتار تعداد';
+  // مشخصات شمارش و تعداد متغیر
+  String countType = 'هکتار';
   final treeCountCtrl = TextEditingController(text: '350');
   String variety = 'اکبری';
   String ageGroup = 'بارور (بیش از 8 سال)';
@@ -1176,10 +1234,7 @@ class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> {
   final soilDateCtrl = TextEditingController(text: '1404/07/10');
   final Map<String, TextEditingController> soilCtrls = {};
 
-  // لیست تاریخ‌های آبیاری
   final List<String> irrigationDates = <String>['1404/07/04', '1404/07/18'];
-
-  final waterDateCtrl = TextEditingController(text: '1404/07/12');
   final Map<String, TextEditingController> waterCtrls = {};
 
   final periodNotesCtrl = TextEditingController();
@@ -1210,7 +1265,6 @@ class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> {
       soilType = widget.recordToEdit!.soilType;
       leafDateCtrl.text = widget.recordToEdit!.leafTestDate;
       soilDateCtrl.text = widget.recordToEdit!.soilTestDate;
-      waterDateCtrl.text = widget.recordToEdit!.waterTestDate;
       irrigationDates.clear();
       irrigationDates.addAll(widget.recordToEdit!.irrigationDates);
       periodNotesCtrl.text = widget.recordToEdit!.periodNotes;
@@ -1223,7 +1277,7 @@ class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> {
       textDirection: TextDirection.rtl,
       child: Scaffold(
         appBar: AppBar(
-          title: Text(widget.recordToEdit != null ? 'ویرایش اطلاعات دوره' : 'ثبت خوداظهاری - ${widget.land.name}'),
+          title: Text(widget.recordToEdit != null ? 'ویرایش اطلاعات دوره' : 'ثبت اقدامات گذشته - ${widget.land.name}'),
         ),
         body: Column(
           children: [
@@ -1335,6 +1389,7 @@ class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> {
     );
   }
 
+  // تفکیک دقیق هکتار در سمت راست و تعداد پویا در سمت چپ
   Widget _buildTreeStep() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
@@ -1345,20 +1400,29 @@ class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> {
           const SizedBox(height: 12),
           Row(
             children: [
+              // سمت راست: نوع شمارش (نصف کادر)
               Expanded(
                 child: DropdownButtonFormField<String>(
                   value: countType,
-                  items: ['هکتار تعداد', 'قفیز تعداد', 'جریب تعداد', 'تعداد (واحد دانه)'].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 12)))).toList(),
-                  onChanged: (v) => setState(() => countType = v!),
-                  decoration: const InputDecoration(labelText: 'نوع شمارش', border: OutlineInputBorder()),
+                  items: ['هکتار', 'قفیز', 'جریب', 'دانه'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                  onChanged: (v) {
+                    setState(() {
+                      countType = v!;
+                    });
+                  },
+                  decoration: const InputDecoration(labelText: 'واحد شمارش', border: OutlineInputBorder()),
                 ),
               ),
               const SizedBox(width: 8),
+              // سمت چپ: فیلد داینامیک بر اساس واحد انتخابی
               Expanded(
                 child: TextField(
                   controller: treeCountCtrl,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'تعداد درخت *', border: OutlineInputBorder()),
+                  decoration: InputDecoration(
+                    labelText: 'تعداد در $countType *',
+                    border: const OutlineInputBorder(),
+                  ),
                 ),
               ),
             ],
@@ -1432,6 +1496,7 @@ class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> {
     );
   }
 
+  // حذف فیلد تاریخ کیفیت آب و حفظ یادداشت ۶ ماهه
   Widget _buildSoilWaterStep() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
@@ -1484,8 +1549,6 @@ class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> {
             }).toList(),
           ),
           const Divider(height: 32),
-
-          // بخش دوره‌های آبیاری تعاملی و پویا
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -1524,23 +1587,11 @@ class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> {
               );
             }).toList(),
           ),
-
           const Divider(height: 32),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('کیفیت آب و شاخص‌ها:', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF4E342E))),
-              TextButton.icon(
-                icon: const Icon(Icons.calendar_month, color: Color(0xFF4A7C43)),
-                label: Text(waterDateCtrl.text),
-                onPressed: () async {
-                  final picked = await showPersianDatePickerDialog(context);
-                  if (picked != null) setState(() => waterDateCtrl.text = picked);
-                },
-              )
-            ],
-          ),
-          const SizedBox(height: 8),
+
+          // بخش کیفیت آب با حذف دکمه تاریخ
+          const Text('کیفیت آب و شاخص‌های شیمیایی:', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF4E342E))),
+          const SizedBox(height: 12),
           Wrap(
             spacing: 8,
             children: waterCtrls.entries.map<Widget>((e) {
@@ -1559,13 +1610,13 @@ class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> {
           ),
 
           const SizedBox(height: 24),
-          const Text('یادداشت و مشاهدات این دوره (۶ ماهه):', style: TextStyle(fontWeight: FontWeight.bold)),
+          const Text('یادداشت و مشاهدات شش ماهه:', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF4E342E))),
           const SizedBox(height: 8),
           TextField(
             controller: periodNotesCtrl,
             maxLines: 3,
             decoration: const InputDecoration(
-              hintText: 'علائم ظاهری برگ و تنه، میزان پیوندها، علائم آفت و یادداشت‌های مربوط به این ماه را ثبت کنید...',
+              hintText: 'علائم ظاهری برگ و تنه، میزان پیوندها، علائم آفت و یادداشت‌های ۶ ماهه را بنویسید...',
               border: OutlineInputBorder(),
             ),
           ),
@@ -1605,7 +1656,6 @@ class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> {
       soilTestDate: soilDateCtrl.text,
       soilElements: soilCtrls.map((k, v) => MapEntry(k, v.text)),
       irrigationDates: irrigationDates,
-      waterTestDate: waterDateCtrl.text,
       waterElements: waterCtrls.map((k, v) => MapEntry(k, v.text)),
       periodNotes: periodNotesCtrl.text.trim(),
     );
