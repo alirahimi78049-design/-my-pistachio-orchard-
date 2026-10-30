@@ -1,94 +1,44 @@
 import 'dart:convert';
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-// ==========================================
-// موتور ذخیره‌سازی پایدار (Database Service)
-// ==========================================
-class LocalStorageService {
-  static const String _userKey = 'app_user_profile_v1';
-  static const String _landsKey = 'app_lands_list_v1';
-  static const String _recordsKey = 'app_monthly_records_v1';
-  static const String _notesKey = 'app_yearly_notes_v1';
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const PistachioApp());
+}
 
-  static Future<void> saveUser(UserProfile? user) async {
-    final prefs = await SharedPreferences.getInstance();
-    if (user == null) {
-      await prefs.remove(_userKey);
-    } else {
-      await prefs.setString(_userKey, jsonEncode(user.toJson()));
-    }
-  }
+class PistachioApp extends StatelessWidget {
+  const PistachioApp({super.key});
 
-  static Future<UserProfile?> getUser() async {
-    final prefs = await SharedPreferences.getInstance();
-    final data = prefs.getString(_userKey);
-    if (data == null) return null;
-    try {
-      return UserProfile.fromJson(jsonDecode(data));
-    } catch (_) {
-      return null;
-    }
-  }
-
-  static Future<void> saveLands(List<OrchardLand> lands) async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonList = lands.map((l) => l.toJson()).toList();
-    await prefs.setString(_landsKey, jsonEncode(jsonList));
-  }
-
-  static Future<List<OrchardLand>> getLands() async {
-    final prefs = await SharedPreferences.getInstance();
-    final data = prefs.getString(_landsKey);
-    if (data == null) return [];
-    try {
-      final List decoded = jsonDecode(data);
-      return decoded.map((item) => OrchardLand.fromJson(item)).toList();
-    } catch (_) {
-      return [];
-    }
-  }
-
-  static Future<void> saveRecords(List<MonthlyRecord> records) async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonList = records.map((r) => r.toJson()).toList();
-    await prefs.setString(_recordsKey, jsonEncode(jsonList));
-  }
-
-  static Future<List<MonthlyRecord>> getRecords() async {
-    final prefs = await SharedPreferences.getInstance();
-    final data = prefs.getString(_recordsKey);
-    if (data == null) return [];
-    try {
-      final List decoded = jsonDecode(data);
-      return decoded.map((item) => MonthlyRecord.fromJson(item)).toList();
-    } catch (_) {
-      return [];
-    }
-  }
-
-  static Future<void> saveYearlyNotes(Map<int, String> notes) async {
-    final prefs = await SharedPreferences.getInstance();
-    final mapString = notes.map((k, v) => MapEntry(k.toString(), v));
-    await prefs.setString(_notesKey, jsonEncode(mapString));
-  }
-
-  static Future> getYearlyNotes() async {
-    final prefs = await SharedPreferences.getInstance();
-    final data = prefs.getString(_notesKey);
-    if (data == null) return {};
-    try {
-      final Map<String, dynamic> decoded = jsonDecode(data);
-      return decoded.map((k, v) => MapEntry(int.parse(k), v.toString()));
-    } catch (_) {
-      return {};
-    }
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'سامانه هوشمند باغات پسته',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        useMaterial3: true,
+        scaffoldBackgroundColor: const Color(0xFFF4F1EA),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF386641),
+          primary: const Color(0xFF386641),
+          secondary: const Color(0xFF6B4226),
+        ),
+        fontFamily: 'Tahoma',
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF2C5134),
+          foregroundColor: Colors.white,
+          centerTitle: true,
+          elevation: 4,
+          shadowColor: Colors.black45,
+        ),
+      ),
+      home: const AuthGateScreen(),
+    );
   }
 }
 
 // ==========================================
-// مدل‌های داده همراه با تبدیل به JSON
+// مدل‌های داده
 // ==========================================
 class UserProfile {
   final String fullName;
@@ -179,11 +129,11 @@ class OrchardLand {
       };
 
   factory OrchardLand.fromJson(Map<String, dynamic> json) => OrchardLand(
-        id: json['id'],
-        name: json['name'],
-        unit: json['unit'],
-        areaValue: (json['areaValue'] as num).toDouble(),
-        standardAreaSquareMeters: (json['standardAreaSquareMeters'] as num).toDouble(),
+        id: json['id'] ?? '',
+        name: json['name'] ?? '',
+        unit: json['unit'] ?? 'هکتار',
+        areaValue: (json['areaValue'] as num?)?.toDouble() ?? 1.0,
+        standardAreaSquareMeters: (json['standardAreaSquareMeters'] as num?)?.toDouble() ?? 10000.0,
         treeVarieties: List<String>.from(json['treeVarieties'] ?? []),
         isDeleted: json['isDeleted'] ?? false,
       );
@@ -249,10 +199,10 @@ class MonthlyRecord {
       };
 
   factory MonthlyRecord.fromJson(Map<String, dynamic> json) => MonthlyRecord(
-        id: json['id'],
-        landId: json['landId'],
-        solarYear: json['solarYear'],
-        month: json['month'],
+        id: json['id'] ?? '',
+        landId: json['landId'] ?? '',
+        solarYear: json['solarYear'] ?? 1404,
+        month: json['month'] ?? 'مهر',
         countType: json['countType'] ?? 'هکتار',
         treeCount: json['treeCount'] ?? 0,
         variety: json['variety'] ?? 'اکبری',
@@ -269,49 +219,29 @@ class MonthlyRecord {
       );
 }
 
-// ==========================================
-// نقطه آغاز اپلیکیشن (با فراخوانی ذخیره‌ساز)
-// ==========================================
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  final savedUser = await LocalStorageService.getUser();
-  runApp(PistachioApp(initialUser: savedUser));
+// دیتابیس ایستا و ماندگار درون برنامه (App State Singleton)
+class AppDatabase {
+  static UserProfile? currentUser;
+  static Map<int, String> yearlyNotes = {
+    1404: 'بارندگی مناسب پاییزه - برنامه کودی پتاس و سولفات آمونیوم در دستور کار',
+  };
+  static List<OrchardLand> lands = [
+    OrchardLand(
+      id: 'L-101',
+      name: 'باغ پسته مرکزی',
+      unit: 'هکتار',
+      areaValue: 2.5,
+      standardAreaSquareMeters: 25000.0,
+      treeVarieties: ['اکبری', 'احمد آقایی'],
+    ),
+  ];
+  static List<MonthlyRecord> records = [];
+  static List<CartItem> cartItems = [];
 }
 
-class PistachioApp extends StatelessWidget {
-  final UserProfile? initialUser;
-  const PistachioApp({super.key, this.initialUser});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'سامانه هوشمند باغات پسته',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFFF4F1EA),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF386641),
-          primary: const Color(0xFF386641),
-          secondary: const Color(0xFF6B4226),
-        ),
-        fontFamily: 'Tahoma',
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF2C5134),
-          foregroundColor: Colors.white,
-          centerTitle: true,
-          elevation: 4,
-          shadowColor: Colors.black45,
-        ),
-      ),
-      home: initialUser != null
-          ? MainNavigationShell(currentUser: initialUser!)
-          : const AuthGateScreen(),
-    );
-  }
-}
-
-// ویجت‌های سه‌بعدی
+// ==========================================
+// ویجت‌های سه‌بعدی و عمیق بصری
+// ==========================================
 class ElevatedCardBox extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
@@ -662,7 +592,7 @@ class _AuthGateScreenState extends State<AuthGateScreen> {
     );
   }
 
-  void _handleLogin() async {
+  void _handleLogin() {
     final name = nameController.text.trim();
     final phone = phoneController.text.trim();
 
@@ -690,10 +620,8 @@ class _AuthGateScreenState extends State<AuthGateScreen> {
       role: selectedRole,
     );
 
-    // ذخیره دائمی مشخصات ورود در دیسک سخت
-    await LocalStorageService.saveUser(user);
+    AppDatabase.currentUser = user;
 
-    if (!mounted) return;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (ctx) => MainNavigationShell(currentUser: user)),
@@ -702,7 +630,7 @@ class _AuthGateScreenState extends State<AuthGateScreen> {
 }
 
 // ==========================================
-// پوسته اصلی متصل به حافظه دائمی
+// پوسته اصلی
 // ==========================================
 class MainNavigationShell extends StatefulWidget {
   final UserProfile currentUser;
@@ -717,11 +645,6 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   int currentTabIndex = 0;
   int selectedYear = 1404;
   final List<int> allAvailableYears = List.generate(45, (index) => 1380 + index);
-
-  Map<int, String> yearlyNotes = {};
-  final List<CartItem> cartItems = [];
-  List<OrchardLand> lands = [];
-  List<MonthlyRecord> records = [];
 
   final List<ProductItem> storeProducts = [
     ProductItem(
@@ -762,47 +685,13 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     ),
   ];
 
-  @override
-  void initState() {
-    super.initState();
-    _loadFromDatabase();
-  }
-
-  // فراخوانی دائم داده‌ها از حافظه گوشی
-  Future<void> _loadFromDatabase() async {
-    final savedLands = await LocalStorageService.getLands();
-    final savedRecords = await LocalStorageService.getRecords();
-    final savedNotes = await LocalStorageService.getYearlyNotes();
-
-    setState(() {
-      if (savedLands.isNotEmpty) {
-        lands = savedLands;
-      } else {
-        // نمونه پیش‌فرض فقط برای اولین ورود
-        lands = [
-          OrchardLand(
-            id: 'L-101',
-            name: 'باغ پسته مرکزی',
-            unit: 'هکتار',
-            areaValue: 2.5,
-            standardAreaSquareMeters: 25000.0,
-            treeVarieties: ['اکبری', 'احمد آقایی'],
-          ),
-        ];
-        LocalStorageService.saveLands(lands);
-      }
-      records = savedRecords;
-      yearlyNotes = savedNotes;
-    });
-  }
-
   void _addToCart(ProductItem product) {
     setState(() {
-      final existingIndex = cartItems.indexWhere((c) => c.product.id == product.id);
+      final existingIndex = AppDatabase.cartItems.indexWhere((c) => c.product.id == product.id);
       if (existingIndex != -1) {
-        cartItems[existingIndex].quantity++;
+        AppDatabase.cartItems[existingIndex].quantity++;
       } else {
-        cartItems.add(CartItem(product: product, quantity: 1));
+        AppDatabase.cartItems.add(CartItem(product: product, quantity: 1));
       }
     });
     ScaffoldMessenger.of(context).showSnackBar(
@@ -823,9 +712,8 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             IconButton(
               icon: const Icon(Icons.logout),
               tooltip: 'خروج از حساب',
-              onPressed: () async {
-                await LocalStorageService.saveUser(null);
-                if (!mounted) return;
+              onPressed: () {
+                AppDatabase.currentUser = null;
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (ctx) => const AuthGateScreen()),
@@ -866,13 +754,13 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                     ),
                     NavigationDestination(
                       icon: Badge(
-                        label: Text('${cartItems.fold<int>(0, (sum, i) => sum + i.quantity)}'),
-                        isLabelVisible: cartItems.isNotEmpty,
+                        label: Text('${AppDatabase.cartItems.fold<int>(0, (sum, i) => sum + i.quantity)}'),
+                        isLabelVisible: AppDatabase.cartItems.isNotEmpty,
                         child: const Icon(Icons.shopping_cart_outlined),
                       ),
                       selectedIcon: Badge(
-                        label: Text('${cartItems.fold<int>(0, (sum, i) => sum + i.quantity)}'),
-                        isLabelVisible: cartItems.isNotEmpty,
+                        label: Text('${AppDatabase.cartItems.fold<int>(0, (sum, i) => sum + i.quantity)}'),
+                        isLabelVisible: AppDatabase.cartItems.isNotEmpty,
                         child: const Icon(Icons.shopping_cart, color: Color(0xFF2C5134)),
                       ),
                       label: 'سبد خرید',
@@ -920,7 +808,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   }
 
   Widget _buildFarmerView() {
-    final activeLands = lands.where((l) => !l.isDeleted).toList();
+    final activeLands = AppDatabase.lands.where((l) => !l.isDeleted).toList();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
@@ -1217,7 +1105,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   }
 
   Widget _buildCartView() {
-    if (cartItems.isEmpty) {
+    if (AppDatabase.cartItems.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1235,16 +1123,16 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       );
     }
 
-    final totalAmount = cartItems.fold<int>(0, (sum, i) => sum + (i.product.priceTomans * i.quantity));
+    final totalAmount = AppDatabase.cartItems.fold<int>(0, (sum, i) => sum + (i.product.priceTomans * i.quantity));
 
     return Column(
       children: [
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: cartItems.length,
+            itemCount: AppDatabase.cartItems.length,
             itemBuilder: (context, index) {
-              final item = cartItems[index];
+              final item = AppDatabase.cartItems[index];
               return ElevatedCardBox(
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(12),
@@ -1274,7 +1162,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                               if (item.quantity > 1) {
                                 item.quantity--;
                               } else {
-                                cartItems.removeAt(index);
+                                AppDatabase.cartItems.removeAt(index);
                               }
                             });
                           },
@@ -1332,7 +1220,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                           TextButton(
                             onPressed: () {
                               Navigator.pop(ctx);
-                              setState(() => cartItems.clear());
+                              setState(() => AppDatabase.cartItems.clear());
                             },
                             child: const Text('تأیید پرداخت'),
                           )
@@ -1351,14 +1239,14 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   }
 
   Widget _buildAllLandsHistoryView() {
-    final activeLands = lands.where((l) => !l.isDeleted).toList();
+    final activeLands = AppDatabase.lands.where((l) => !l.isDeleted).toList();
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: activeLands.length,
       itemBuilder: (context, idx) {
         final land = activeLands[idx];
-        final landRecs = records.where((r) => r.landId == land.id && r.solarYear == selectedYear).toList();
+        final landRecs = AppDatabase.records.where((r) => r.landId == land.id && r.solarYear == selectedYear).toList();
 
         return ElevatedCardBox(
           child: Column(
@@ -1429,7 +1317,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   }
 
   void _openYearlyNoteDialog() {
-    final noteCtrl = TextEditingController(text: yearlyNotes[selectedYear] ?? '');
+    final noteCtrl = TextEditingController(text: AppDatabase.yearlyNotes[selectedYear] ?? '');
 
     showDialog(
       context: context,
@@ -1449,10 +1337,8 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('انصراف')),
             DeepGradientButton(
-              onPressed: () async {
-                setState(() => yearlyNotes[selectedYear] = noteCtrl.text.trim());
-                await LocalStorageService.saveYearlyNotes(yearlyNotes);
-                if (!mounted) return;
+              onPressed: () {
+                setState(() => AppDatabase.yearlyNotes[selectedYear] = noteCtrl.text.trim());
                 Navigator.pop(ctx);
               },
               child: const Text('ذخیره'),
@@ -1535,7 +1421,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                     width: double.infinity,
                     height: 48,
                     child: DeepGradientButton(
-                      onPressed: () async {
+                      onPressed: () {
                         if (nameCtrl.text.trim().isEmpty || areaCtrl.text.trim().isEmpty) return;
                         final val = double.tryParse(areaCtrl.text.trim()) ?? 1.0;
                         final newLand = OrchardLand(
@@ -1547,10 +1433,8 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                           treeVarieties: selectedVarieties.isEmpty ? ['اکبری'] : selectedVarieties,
                         );
                         setState(() {
-                          lands.insert(0, newLand);
+                          AppDatabase.lands.insert(0, newLand);
                         });
-                        await LocalStorageService.saveLands(lands);
-                        if (!mounted) return;
                         Navigator.pop(ctx);
                       },
                       child: const Text('ذخیره زمین', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
@@ -1586,15 +1470,13 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
               TextField(controller: areaCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'مساحت')),
               const SizedBox(height: 16),
               DeepGradientButton(
-                onPressed: () async {
+                onPressed: () {
                   setState(() {
                     land.name = nameCtrl.text.trim();
                     final v = double.tryParse(areaCtrl.text.trim()) ?? land.areaValue;
                     land.areaValue = v;
                     land.standardAreaSquareMeters = selectedUnit == 'هکتار' ? v * 10000 : v;
                   });
-                  await LocalStorageService.saveLands(lands);
-                  if (!mounted) return;
                   Navigator.pop(ctx);
                 },
                 child: const Text('ذخیره ویرایش'),
@@ -1637,18 +1519,17 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         builder: (ctx) => SelfDeclarationScreen(
           land: land,
           year: selectedYear,
-          existingRecords: records,
+          existingRecords: AppDatabase.records,
           recordToEdit: recordToEdit,
-          onSave: (newRec) async {
+          onSave: (newRec) {
             setState(() {
               if (recordToEdit != null) {
-                final idx = records.indexWhere((r) => r.id == recordToEdit.id);
-                if (idx != -1) records[idx] = newRec;
+                final idx = AppDatabase.records.indexWhere((r) => r.id == recordToEdit.id);
+                if (idx != -1) AppDatabase.records[idx] = newRec;
               } else {
-                records.add(newRec);
+                AppDatabase.records.add(newRec);
               }
             });
-            await LocalStorageService.saveRecords(records);
           },
         ),
       ),
