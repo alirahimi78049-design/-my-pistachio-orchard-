@@ -1,12 +1,286 @@
+import 'dart:convert';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-void main() {
-  runApp(const PistachioApp());
+// ==========================================
+// موتور ذخیره‌سازی پایدار (Database Service)
+// ==========================================
+class LocalStorageService {
+  static const String _userKey = 'app_user_profile_v1';
+  static const String _landsKey = 'app_lands_list_v1';
+  static const String _recordsKey = 'app_monthly_records_v1';
+  static const String _notesKey = 'app_yearly_notes_v1';
+
+  static Future<void> saveUser(UserProfile? user) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (user == null) {
+      await prefs.remove(_userKey);
+    } else {
+      await prefs.setString(_userKey, jsonEncode(user.toJson()));
+    }
+  }
+
+  static Future<UserProfile?> getUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    final data = prefs.getString(_userKey);
+    if (data == null) return null;
+    try {
+      return UserProfile.fromJson(jsonDecode(data));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<void> saveLands(List<OrchardLand> lands) async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonList = lands.map((l) => l.toJson()).toList();
+    await prefs.setString(_landsKey, jsonEncode(jsonList));
+  }
+
+  static Future<List<OrchardLand>> getLands() async {
+    final prefs = await SharedPreferences.getInstance();
+    final data = prefs.getString(_landsKey);
+    if (data == null) return [];
+    try {
+      final List decoded = jsonDecode(data);
+      return decoded.map((item) => OrchardLand.fromJson(item)).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> saveRecords(List<MonthlyRecord> records) async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonList = records.map((r) => r.toJson()).toList();
+    await prefs.setString(_recordsKey, jsonEncode(jsonList));
+  }
+
+  static Future<List<MonthlyRecord>> getRecords() async {
+    final prefs = await SharedPreferences.getInstance();
+    final data = prefs.getString(_recordsKey);
+    if (data == null) return [];
+    try {
+      final List decoded = jsonDecode(data);
+      return decoded.map((item) => MonthlyRecord.fromJson(item)).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> saveYearlyNotes(Map<int, String> notes) async {
+    final prefs = await SharedPreferences.getInstance();
+    final mapString = notes.map((k, v) => MapEntry(k.toString(), v));
+    await prefs.setString(_notesKey, jsonEncode(mapString));
+  }
+
+  static Future> getYearlyNotes() async {
+    final prefs = await SharedPreferences.getInstance();
+    final data = prefs.getString(_notesKey);
+    if (data == null) return {};
+    try {
+      final Map<String, dynamic> decoded = jsonDecode(data);
+      return decoded.map((k, v) => MapEntry(int.parse(k), v.toString()));
+    } catch (_) {
+      return {};
+    }
+  }
+}
+
+// ==========================================
+// مدل‌های داده همراه با تبدیل به JSON
+// ==========================================
+class UserProfile {
+  final String fullName;
+  final String phoneNumber;
+  final String province;
+  final String city;
+  final String role;
+
+  UserProfile({
+    required this.fullName,
+    required this.phoneNumber,
+    required this.province,
+    required this.city,
+    required this.role,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'fullName': fullName,
+        'phoneNumber': phoneNumber,
+        'province': province,
+        'city': city,
+        'role': role,
+      };
+
+  factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile(
+        fullName: json['fullName'] ?? '',
+        phoneNumber: json['phoneNumber'] ?? '',
+        province: json['province'] ?? '',
+        city: json['city'] ?? '',
+        role: json['role'] ?? 'باغدار',
+      );
+}
+
+class ProductItem {
+  final String id;
+  final String title;
+  final String category;
+  final int priceTomans;
+  final String unit;
+  final String targetElement;
+  final String imageUrl;
+
+  ProductItem({
+    required this.id,
+    required this.title,
+    required this.category,
+    required this.priceTomans,
+    required this.unit,
+    required this.targetElement,
+    required this.imageUrl,
+  });
+}
+
+class CartItem {
+  final ProductItem product;
+  int quantity;
+
+  CartItem({required this.product, this.quantity = 1});
+}
+
+class OrchardLand {
+  final String id;
+  String name;
+  String unit;
+  double areaValue;
+  double standardAreaSquareMeters;
+  List<String> treeVarieties;
+  bool isDeleted;
+
+  OrchardLand({
+    required this.id,
+    required this.name,
+    required this.unit,
+    required this.areaValue,
+    required this.standardAreaSquareMeters,
+    required this.treeVarieties,
+    this.isDeleted = false,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'unit': unit,
+        'areaValue': areaValue,
+        'standardAreaSquareMeters': standardAreaSquareMeters,
+        'treeVarieties': treeVarieties,
+        'isDeleted': isDeleted,
+      };
+
+  factory OrchardLand.fromJson(Map<String, dynamic> json) => OrchardLand(
+        id: json['id'],
+        name: json['name'],
+        unit: json['unit'],
+        areaValue: (json['areaValue'] as num).toDouble(),
+        standardAreaSquareMeters: (json['standardAreaSquareMeters'] as num).toDouble(),
+        treeVarieties: List<String>.from(json['treeVarieties'] ?? []),
+        isDeleted: json['isDeleted'] ?? false,
+      );
+}
+
+class MonthlyRecord {
+  final String id;
+  final String landId;
+  final int solarYear;
+  final String month;
+  String countType;
+  int treeCount;
+  String variety;
+  String ageGroup;
+  int treeAge;
+  String leafTestDate;
+  Map<String, String> leafElements;
+  String soilType;
+  String soilTestDate;
+  Map<String, String> soilElements;
+  List<String> irrigationDates;
+  Map<String, String> waterElements;
+  String periodNotes;
+
+  MonthlyRecord({
+    required this.id,
+    required this.landId,
+    required this.solarYear,
+    required this.month,
+    required this.countType,
+    required this.treeCount,
+    required this.variety,
+    required this.ageGroup,
+    required this.treeAge,
+    required this.leafTestDate,
+    required this.leafElements,
+    required this.soilType,
+    required this.soilTestDate,
+    required this.soilElements,
+    required this.irrigationDates,
+    required this.waterElements,
+    required this.periodNotes,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'landId': landId,
+        'solarYear': solarYear,
+        'month': month,
+        'countType': countType,
+        'treeCount': treeCount,
+        'variety': variety,
+        'ageGroup': ageGroup,
+        'treeAge': treeAge,
+        'leafTestDate': leafTestDate,
+        'leafElements': leafElements,
+        'soilType': soilType,
+        'soilTestDate': soilTestDate,
+        'soilElements': soilElements,
+        'irrigationDates': irrigationDates,
+        'waterElements': waterElements,
+        'periodNotes': periodNotes,
+      };
+
+  factory MonthlyRecord.fromJson(Map<String, dynamic> json) => MonthlyRecord(
+        id: json['id'],
+        landId: json['landId'],
+        solarYear: json['solarYear'],
+        month: json['month'],
+        countType: json['countType'] ?? 'هکتار',
+        treeCount: json['treeCount'] ?? 0,
+        variety: json['variety'] ?? 'اکبری',
+        ageGroup: json['ageGroup'] ?? 'بارور',
+        treeAge: json['treeAge'] ?? 0,
+        leafTestDate: json['leafTestDate'] ?? '',
+        leafElements: Map<String, String>.from(json['leafElements'] ?? {}),
+        soilType: json['soilType'] ?? 'رسی',
+        soilTestDate: json['soilTestDate'] ?? '',
+        soilElements: Map<String, String>.from(json['soilElements'] ?? {}),
+        irrigationDates: List<String>.from(json['irrigationDates'] ?? []),
+        waterElements: Map<String, String>.from(json['waterElements'] ?? {}),
+        periodNotes: json['periodNotes'] ?? '',
+      );
+}
+
+// ==========================================
+// نقطه آغاز اپلیکیشن (با فراخوانی ذخیره‌ساز)
+// ==========================================
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final savedUser = await LocalStorageService.getUser();
+  runApp(PistachioApp(initialUser: savedUser));
 }
 
 class PistachioApp extends StatelessWidget {
-  const PistachioApp({super.key});
+  final UserProfile? initialUser;
+  const PistachioApp({super.key, this.initialUser});
 
   @override
   Widget build(BuildContext context) {
@@ -30,14 +304,14 @@ class PistachioApp extends StatelessWidget {
           shadowColor: Colors.black45,
         ),
       ),
-      home: const AuthGateScreen(),
+      home: initialUser != null
+          ? MainNavigationShell(currentUser: initialUser!)
+          : const AuthGateScreen(),
     );
   }
 }
 
-// ==========================================
-// ویجت‌های اختصاصی عمق‌دهی بصری
-// ==========================================
+// ویجت‌های سه‌بعدی
 class ElevatedCardBox extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
@@ -137,131 +411,7 @@ class DeepGradientButton extends StatelessWidget {
   }
 }
 
-// ==========================================
-// مدل‌های داده
-// ==========================================
-class UserProfile {
-  final String fullName;
-  final String phoneNumber;
-  final String province;
-  final String city;
-  final String role;
-
-  UserProfile({
-    required this.fullName,
-    required this.phoneNumber,
-    required this.province,
-    required this.city,
-    required this.role,
-  });
-}
-
-class ProductItem {
-  final String id;
-  final String title;
-  final String category;
-  final int priceTomans;
-  final String unit;
-  final String targetElement;
-  final String imageUrl;
-
-  ProductItem({
-    required this.id,
-    required this.title,
-    required this.category,
-    required this.priceTomans,
-    required this.unit,
-    required this.targetElement,
-    required this.imageUrl,
-  });
-}
-
-class CartItem {
-  final ProductItem product;
-  int quantity;
-
-  CartItem({required this.product, this.quantity = 1});
-}
-
-class OrchardLand {
-  final String id;
-  String name;
-  String unit;
-  double areaValue;
-  double standardAreaSquareMeters;
-  List<String> treeVarieties;
-  bool isDeleted;
-
-  OrchardLand({
-    required this.id,
-    required this.name,
-    required this.unit,
-    required this.areaValue,
-    required this.standardAreaSquareMeters,
-    required this.treeVarieties,
-    this.isDeleted = false,
-  });
-}
-
-class MonthlyRecord {
-  final String id;
-  final String landId;
-  final int solarYear;
-  final String month;
-  String countType;
-  int treeCount;
-  String variety;
-  String ageGroup;
-  int treeAge;
-  String leafTestDate;
-  Map<String, String> leafElements;
-  String soilType;
-  String soilTestDate;
-  Map<String, String> soilElements;
-  List<String> irrigationDates;
-  Map<String, String> waterElements;
-  String periodNotes;
-
-  MonthlyRecord({
-    required this.id,
-    required this.landId,
-    required this.solarYear,
-    required this.month,
-    required this.countType,
-    required this.treeCount,
-    required this.variety,
-    required this.ageGroup,
-    required this.treeAge,
-    required this.leafTestDate,
-    required this.leafElements,
-    required this.soilType,
-    required this.soilTestDate,
-    required this.soilElements,
-    required this.irrigationDates,
-    required this.waterElements,
-    required this.periodNotes,
-  });
-}
-
-class ConsultantItem {
-  final String rowNum;
-  final String farmerName;
-  final String farmerCode;
-  final String landId;
-  final String landName;
-  String status;
-
-  ConsultantItem({
-    required this.rowNum,
-    required this.farmerName,
-    required this.farmerCode,
-    required this.landId,
-    required this.landName,
-    required this.status,
-  });
-}
-
-// تقویم بازشونده شمسی پویا
+// تقویم پویا
 Future<String?> showPersianDatePickerDialog(BuildContext context, {int initialYear = 1404}) async {
   int selYear = initialYear;
   int selMonth = 7;
@@ -311,7 +461,7 @@ Future<String?> showPersianDatePickerDialog(BuildContext context, {int initialYe
               ),
               const SizedBox(height: 16),
               Text(
-                'تاریخ انتخاب‌شده: $selYear/${selMonth.toString().padLeft(2, '0')}/${selDay.toString().padLeft(2, '0')} ',
+                'تاریخ انتخاب‌شده: $selYear/${selMonth.toString().padLeft(2, '0')}/${selDay.toString().padLeft(2, '0')}',
                 style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF386641)),
               ),
             ],
@@ -334,7 +484,7 @@ Future<String?> showPersianDatePickerDialog(BuildContext context, {int initialYe
 }
 
 // ==========================================
-// صفحه ورود هوشمند و معتبر
+// صفحه ورود
 // ==========================================
 class AuthGateScreen extends StatefulWidget {
   const AuthGateScreen({super.key});
@@ -512,7 +662,7 @@ class _AuthGateScreenState extends State<AuthGateScreen> {
     );
   }
 
-  void _handleLogin() {
+  void _handleLogin() async {
     final name = nameController.text.trim();
     final phone = phoneController.text.trim();
 
@@ -540,6 +690,10 @@ class _AuthGateScreenState extends State<AuthGateScreen> {
       role: selectedRole,
     );
 
+    // ذخیره دائمی مشخصات ورود در دیسک سخت
+    await LocalStorageService.saveUser(user);
+
+    if (!mounted) return;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (ctx) => MainNavigationShell(currentUser: user)),
@@ -548,7 +702,7 @@ class _AuthGateScreenState extends State<AuthGateScreen> {
 }
 
 // ==========================================
-// پوسته اصلی برنامه (داشبورد، فروشگاه، سبد و تاریخچه)
+// پوسته اصلی متصل به حافظه دائمی
 // ==========================================
 class MainNavigationShell extends StatefulWidget {
   final UserProfile currentUser;
@@ -564,11 +718,10 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   int selectedYear = 1404;
   final List<int> allAvailableYears = List.generate(45, (index) => 1380 + index);
 
-  final Map<int, String> yearlyNotes = {
-    1404: 'بارندگی مناسب پاییزه - برنامه کودی پتاس و سولفات آمونیوم در دستور کار',
-  };
-
+  Map<int, String> yearlyNotes = {};
   final List<CartItem> cartItems = [];
+  List<OrchardLand> lands = [];
+  List<MonthlyRecord> records = [];
 
   final List<ProductItem> storeProducts = [
     ProductItem(
@@ -609,46 +762,39 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     ),
   ];
 
-  final List<OrchardLand> lands = [
-    OrchardLand(
-      id: 'L-101',
-      name: 'باغ پسته مرکزی',
-      unit: 'هکتار',
-      areaValue: 2.5,
-      standardAreaSquareMeters: 25000.0,
-      treeVarieties: ['اکبری', 'احمد آقایی'],
-    ),
-    OrchardLand(
-      id: 'L-102',
-      name: 'قطعه غربی',
-      unit: 'متر مربع',
-      areaValue: 7500.0,
-      standardAreaSquareMeters: 7500.0,
-      treeVarieties: ['کله‌قوچی', 'فندقی'],
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadFromDatabase();
+  }
 
-  final List<MonthlyRecord> records = [
-    MonthlyRecord(
-      id: 'REC-DEMO',
-      landId: 'L-101',
-      solarYear: 1404,
-      month: 'مهر',
-      countType: 'هکتار',
-      treeCount: 350,
-      variety: 'اکبری',
-      ageGroup: 'بارور (بیش از 8 سال)',
-      treeAge: 12,
-      leafTestDate: '1404/07/15',
-      leafElements: {'N': '1.8', 'P': '0.12', 'K': '0.9', 'Fe': '45', 'Zn': '12'},
-      soilType: 'رسی',
-      soilTestDate: '1404/07/10',
-      soilElements: {'Ec': '3.2', 'pH': '7.8', 'SAR': '4.1'},
-      irrigationDates: ['1404/07/04', '1404/07/18'],
-      waterElements: {'Ec': '2.8', 'TDS': '1800'},
-      periodNotes: 'پیوندها سالم و نیاز به تغذیه پتاسه در آب استارت',
-    )
-  ];
+  // فراخوانی دائم داده‌ها از حافظه گوشی
+  Future<void> _loadFromDatabase() async {
+    final savedLands = await LocalStorageService.getLands();
+    final savedRecords = await LocalStorageService.getRecords();
+    final savedNotes = await LocalStorageService.getYearlyNotes();
+
+    setState(() {
+      if (savedLands.isNotEmpty) {
+        lands = savedLands;
+      } else {
+        // نمونه پیش‌فرض فقط برای اولین ورود
+        lands = [
+          OrchardLand(
+            id: 'L-101',
+            name: 'باغ پسته مرکزی',
+            unit: 'هکتار',
+            areaValue: 2.5,
+            standardAreaSquareMeters: 25000.0,
+            treeVarieties: ['اکبری', 'احمد آقایی'],
+          ),
+        ];
+        LocalStorageService.saveLands(lands);
+      }
+      records = savedRecords;
+      yearlyNotes = savedNotes;
+    });
+  }
 
   void _addToCart(ProductItem product) {
     setState(() {
@@ -677,7 +823,9 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             IconButton(
               icon: const Icon(Icons.logout),
               tooltip: 'خروج از حساب',
-              onPressed: () {
+              onPressed: () async {
+                await LocalStorageService.saveUser(null);
+                if (!mounted) return;
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (ctx) => const AuthGateScreen()),
@@ -771,7 +919,6 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     }
   }
 
-  // تب ۱: داشبورد زمین‌ها
   Widget _buildFarmerView() {
     final activeLands = lands.where((l) => !l.isDeleted).toList();
 
@@ -972,7 +1119,6 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     );
   }
 
-  // تب ۲: فروشگاه
   Widget _buildStoreView() {
     return ListView(
       padding: const EdgeInsets.all(16.0),
@@ -1070,7 +1216,6 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     );
   }
 
-  // تب ۳: سبد خرید
   Widget _buildCartView() {
     if (cartItems.isEmpty) {
       return Center(
@@ -1205,7 +1350,6 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     );
   }
 
-  // تب ۴: تاریخچه
   Widget _buildAllLandsHistoryView() {
     final activeLands = lands.where((l) => !l.isDeleted).toList();
 
@@ -1234,7 +1378,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('آخرین خوداظهاری: ماه ${landRecs.first.month} (${landRecs.first.variety})', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    Text('آخرین اقدامات ثبت‌شده: ماه ${landRecs.first.month} (${landRecs.first.variety})', style: const TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 10),
                     Container(
                       padding: const EdgeInsets.all(12),
@@ -1258,7 +1402,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                           ),
                           const SizedBox(height: 6),
                           const Text(
-                            'بر اساس آزمایش برگ، سطح پتاسیم (K: 0.9%) کمتر از حد آستانه است.',
+                            'بر اساس آزمایش برگ، سطح پتاسیم کمتر از حد استاندارد است.',
                             style: TextStyle(fontSize: 12),
                           ),
                           const SizedBox(height: 8),
@@ -1305,8 +1449,10 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('انصراف')),
             DeepGradientButton(
-              onPressed: () {
+              onPressed: () async {
                 setState(() => yearlyNotes[selectedYear] = noteCtrl.text.trim());
+                await LocalStorageService.saveYearlyNotes(yearlyNotes);
+                if (!mounted) return;
                 Navigator.pop(ctx);
               },
               child: const Text('ذخیره'),
@@ -1389,19 +1535,22 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                     width: double.infinity,
                     height: 48,
                     child: DeepGradientButton(
-                      onPressed: () {
+                      onPressed: () async {
                         if (nameCtrl.text.trim().isEmpty || areaCtrl.text.trim().isEmpty) return;
                         final val = double.tryParse(areaCtrl.text.trim()) ?? 1.0;
+                        final newLand = OrchardLand(
+                          id: 'L-${DateTime.now().millisecondsSinceEpoch}',
+                          name: nameCtrl.text.trim(),
+                          unit: selectedUnit,
+                          areaValue: val,
+                          standardAreaSquareMeters: selectedUnit == 'هکتار' ? val * 10000 : val,
+                          treeVarieties: selectedVarieties.isEmpty ? ['اکبری'] : selectedVarieties,
+                        );
                         setState(() {
-                          lands.insert(0, OrchardLand(
-                            id: 'L-${DateTime.now().millisecondsSinceEpoch}',
-                            name: nameCtrl.text.trim(),
-                            unit: selectedUnit,
-                            areaValue: val,
-                            standardAreaSquareMeters: selectedUnit == 'هکتار' ? val * 10000 : val,
-                            treeVarieties: selectedVarieties.isEmpty ? ['اکبری'] : selectedVarieties,
-                          ));
+                          lands.insert(0, newLand);
                         });
+                        await LocalStorageService.saveLands(lands);
+                        if (!mounted) return;
                         Navigator.pop(ctx);
                       },
                       child: const Text('ذخیره زمین', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
@@ -1437,13 +1586,15 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
               TextField(controller: areaCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'مساحت')),
               const SizedBox(height: 16),
               DeepGradientButton(
-                onPressed: () {
+                onPressed: () async {
                   setState(() {
                     land.name = nameCtrl.text.trim();
                     final v = double.tryParse(areaCtrl.text.trim()) ?? land.areaValue;
                     land.areaValue = v;
                     land.standardAreaSquareMeters = selectedUnit == 'هکتار' ? v * 10000 : v;
                   });
+                  await LocalStorageService.saveLands(lands);
+                  if (!mounted) return;
                   Navigator.pop(ctx);
                 },
                 child: const Text('ذخیره ویرایش'),
@@ -1488,7 +1639,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           year: selectedYear,
           existingRecords: records,
           recordToEdit: recordToEdit,
-          onSave: (newRec) {
+          onSave: (newRec) async {
             setState(() {
               if (recordToEdit != null) {
                 final idx = records.indexWhere((r) => r.id == recordToEdit.id);
@@ -1497,6 +1648,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                 records.add(newRec);
               }
             });
+            await LocalStorageService.saveRecords(records);
           },
         ),
       ),
