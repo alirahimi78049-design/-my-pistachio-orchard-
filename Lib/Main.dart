@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
 // ==========================================
-// موتور ذخیره و بازیابی مستقیم روی دیسک گوشی
+// موتور ذخیره و بازیابی دائمی روی حافظه گوشی
 // ==========================================
 class FileStorageService {
   static Future<File> _getFile(String fileName) async {
@@ -258,7 +258,9 @@ class PistachioApp extends StatelessWidget {
   }
 }
 
+// ==========================================
 // ویجت‌های سه‌بعدی
+// ==========================================
 class ElevatedCardBox extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
@@ -431,7 +433,7 @@ Future<String?> showPersianDatePickerDialog(BuildContext context, {int initialYe
 }
 
 // ==========================================
-// صفحه ورود و ثبت اطلاعات
+// صفحه ورود
 // ==========================================
 class AuthGateScreen extends StatefulWidget {
   const AuthGateScreen({super.key});
@@ -637,7 +639,6 @@ class _AuthGateScreenState extends State<AuthGateScreen> {
       role: selectedRole,
     );
 
-    // نوشتن مستقیم روی فایل دیسک گوشی
     await FileStorageService.saveString('user_profile', jsonEncode(user.toJson()));
 
     if (!mounted) return;
@@ -649,7 +650,7 @@ class _AuthGateScreenState extends State<AuthGateScreen> {
 }
 
 // ==========================================
-// پوسته اصلی متصل به فایل دائمی
+// پوسته اصلی برنامه همراه با کادر بالای بزرگ و گزارش‌گیری
 // ==========================================
 class MainNavigationShell extends StatefulWidget {
   final UserProfile currentUser;
@@ -715,9 +716,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     _loadDataFromDevice();
   }
 
-  // خواندن فایل‌های متنی از حافظه گوشی
   Future<void> _loadDataFromDevice() async {
-    // ۱. زمین‌ها
     final landsData = await FileStorageService.readString('lands_data');
     if (landsData != null) {
       try {
@@ -742,7 +741,6 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       _persistLands();
     }
 
-    // ۲. رکوردها
     final recsData = await FileStorageService.readString('records_data');
     if (recsData != null) {
       try {
@@ -753,7 +751,6 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       } catch (_) {}
     }
 
-    // ۳. یادداشت‌های سالانه
     final notesData = await FileStorageService.readString('notes_data');
     if (notesData != null) {
       try {
@@ -771,19 +768,16 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     }
   }
 
-  // ذخیره فایل فیزیکی زمین‌ها
   Future<void> _persistLands() async {
     final jsonStr = jsonEncode(lands.map((e) => e.toJson()).toList());
     await FileStorageService.saveString('lands_data', jsonStr);
   }
 
-  // ذخیره فایل فیزیکی اقدامات و آزمایش‌ها
   Future<void> _persistRecords() async {
     final jsonStr = jsonEncode(records.map((e) => e.toJson()).toList());
     await FileStorageService.saveString('records_data', jsonStr);
   }
 
-  // ذخیره فایل فیزیکی یادداشت‌ها
   Future<void> _persistNotes() async {
     final jsonStr = jsonEncode(yearlyNotes.map((k, v) => MapEntry(k.toString(), v)));
     await FileStorageService.saveString('notes_data', jsonStr);
@@ -912,6 +906,9 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     }
   }
 
+  // ==========================================
+  // تب ۱: داشبورد با کادر بالای بزرگ، تصویر پسته و دکمه گزارش
+  // ==========================================
   Widget _buildFarmerView() {
     final activeLands = lands.where((l) => !l.isDeleted).toList();
 
@@ -920,69 +917,139 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // کادر بالای بزرگ و چشم‌نواز با تصویر درخت پسته
           ElevatedCardBox(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            borderRadius: 14,
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              alignment: WrapAlignment.spaceBetween,
+            borderRadius: 20,
+            padding: const EdgeInsets.all(16),
+            child: Column(
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF4F1EA),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFB5C9B3)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text('سال: ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF2C5134))),
-                      DropdownButton<int>(
-                        value: selectedYear,
-                        underline: const SizedBox(),
-                        isDense: true,
-                        items: allAvailableYears.map((int y) {
-                          return DropdownMenuItem<int>(
-                            value: y,
-                            child: Text(y.toString(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                          );
-                        }).toList(),
-                        onChanged: (newYear) {
-                          if (newYear != null) setState(() => selectedYear = newYear);
-                        },
+                Row(
+                  children: [
+                    // تصویر باکیفیت درخت و محصول پسته
+                    Container(
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.12),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          )
+                        ],
+                        image: const DecorationImage(
+                          image: NetworkImage('https://images.unsplash.com/photo-1543257580-7269da773bf5?auto=format&fit=crop&w=400&q=80'),
+                          fit: BoxFit.cover,
+                        ),
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'مدیریت باغات و اقدامات سالانه',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2C5134)),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'سال زراعی فعال: $selectedYear | ${widget.currentUser.province} - ${widget.currentUser.city}',
+                            style: const TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF6B4226),
-                    side: const BorderSide(color: Color(0xFF6B4226)),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                  onPressed: _openYearlyNoteDialog,
-                  icon: const Icon(Icons.note_alt_outlined, size: 16),
-                  label: const Text('یادداشت سال', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                ),
-                DeepGradientButton(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  onPressed: _openAddLandDialog,
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.add, size: 16),
-                      SizedBox(width: 4),
-                      Text('افزودن زمین', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
+                const Divider(height: 24),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  alignment: WrapAlignment.spaceBetween,
+                  children: [
+                    // انتخاب سال
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF4F1EA),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFB5C9B3)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text('سال: ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF2C5134))),
+                          DropdownButton<int>(
+                            value: selectedYear,
+                            underline: const SizedBox(),
+                            isDense: true,
+                            items: allAvailableYears.map((int y) {
+                              return DropdownMenuItem<int>(
+                                value: y,
+                                child: Text(y.toString(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                              );
+                            }).toList(),
+                            onChanged: (newYear) {
+                              if (newYear != null) setState(() => selectedYear = newYear);
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    // یادداشت سال
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF6B4226),
+                        side: const BorderSide(color: Color(0xFF6B4226)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      ),
+                      onPressed: _openYearlyNoteDialog,
+                      icon: const Icon(Icons.note_alt_outlined, size: 16),
+                      label: const Text('یادداشت سال', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    ),
+                    // دکمه گزارش کلی سال
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1E3A8A),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      ),
+                      onPressed: () {
+                        if (activeLands.isNotEmpty) {
+                          _openYearlyReport(activeLands.first);
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('ابتدا یک قطعه زمین ثبت فرمایید.')),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.analytics_outlined, size: 16),
+                      label: const Text('گزارش سالانه', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    ),
+                    // افزودن زمین
+                    DeepGradientButton(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      onPressed: _openAddLandDialog,
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.add, size: 16),
+                          SizedBox(width: 4),
+                          Text('افزودن زمین', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           const Text(
             'زمین‌های ثبت‌شده من',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2C5134)),
@@ -1004,6 +1071,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     );
   }
 
+  // کارت زمین همراه با دکمه گزارش اختصاصی زمین
   Widget _buildDeepLandCard(OrchardLand land) {
     return ElevatedCardBox(
       borderRadius: 18,
@@ -1030,10 +1098,20 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                   ),
                 ],
               ),
-              IconButton(
-                icon: const Icon(Icons.edit_outlined, color: Color(0xFF6B4226), size: 20),
-                onPressed: () => _openEditLandDialog(land),
-                tooltip: 'ویرایش زمین',
+              Row(
+                children: [
+                  // دکمه گزارش سریع اختصاصی این زمین
+                  IconButton(
+                    icon: const Icon(Icons.assignment_outlined, color: Color(0xFF1E3A8A), size: 22),
+                    tooltip: 'گزارش کامل اقدامات سالانه این زمین',
+                    onPressed: () => _openYearlyReport(land),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined, color: Color(0xFF6B4226), size: 20),
+                    onPressed: () => _openEditLandDialog(land),
+                    tooltip: 'ویرایش زمین',
+                  ),
+                ],
               ),
             ],
           ),
@@ -1112,6 +1190,173 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     );
   }
 
+  // ==========================================
+  // صفحه گزارش‌گیری کامل اقدامات سالانه
+  // ==========================================
+  void _openYearlyReport(OrchardLand land) {
+    final landRecs = records.where((r) => r.landId == land.id && r.solarYear == selectedYear).toList();
+
+    // مرتب‌سازی ماه‌ها طبق تقویم شمسی
+    final monthsOrder = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
+    landRecs.sort((a, b) => monthsOrder.indexOf(a.month).compareTo(monthsOrder.indexOf(b.month)));
+
+    MonthlyRecord? lastTestRec;
+    for (var r in landRecs.reversed) {
+      if (r.leafTestDate.isNotEmpty || r.soilTestDate.isNotEmpty) {
+        lastTestRec = r;
+        break;
+      }
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (ctx) => Directionality(
+          textDirection: TextDirection.rtl,
+          child: Scaffold(
+            appBar: AppBar(
+              title: Text('گزارش اقدامات سالانه: ${land.name} ($selectedYear)'),
+              backgroundColor: const Color(0xFF1E3A8A),
+            ),
+            body: SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // خلاصه مشخصات قطعه و سال
+                  ElevatedCardBox(
+                    borderRadius: 16,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(land.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E3A8A))),
+                            Text('سال زراعی: $selectedYear', style: const TextStyle(fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text('مساحت: ${land.areaValue} ${land.unit} (${land.standardAreaSquareMeters.toStringAsFixed(0)} متر مربع) | ارقام: ${land.treeVarieties.join('، ')}'),
+                        if (yearlyNotes[selectedYear] != null && yearlyNotes[selectedYear]!.isNotEmpty) ...[
+                          const Divider(height: 16),
+                          Text('یادداشت کلی سال زراعی: ${yearlyNotes[selectedYear]}', style: const TextStyle(color: Color(0xFF6B4226), fontWeight: FontWeight.bold, fontSize: 13)),
+                        ]
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+                  const Text('اقدامات و فعالیت‌های ثبت‌شده در طول سال (به تفکیک ماه):', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2C5134))),
+                  const SizedBox(height: 10),
+
+                  if (landRecs.isEmpty)
+                    _buildEmptyState('هیچ اقدام ماهانه‌ای در سال $selectedYear برای این زمین ثبت نشده است.')
+                  else
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: landRecs.length,
+                      itemBuilder: (context, index) {
+                        final rec = landRecs[index];
+                        return ElevatedCardBox(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(14),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF386641),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Text(rec.month, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Text('${rec.variety} (${rec.treeCount} ${rec.countType})', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                                  Text('${rec.ageGroup} - ${rec.treeAge} ساله', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              if (rec.irrigationDates.isNotEmpty) ...[
+                                Row(
+                                  children: [
+                                    const Text('دوره‌های آبیاری: ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                    Expanded(
+                                      child: Wrap(
+                                        spacing: 6,
+                                        children: rec.irrigationDates.map((d) => Chip(
+                                          label: Text(d, style: const TextStyle(fontSize: 11)),
+                                          backgroundColor: const Color(0xFFE8F1E7),
+                                          padding: EdgeInsets.zero,
+                                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        )).toList(),
+                                      ),
+                                    )
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                              ],
+                              Text(
+                                rec.periodNotes.isNotEmpty
+                                    ? 'اقدامات و مشاهدات ثبت‌شده: ${rec.periodNotes}'
+                                    : 'هیچ یادداشتی برای این ماه ثبت نشده است.',
+                                style: const TextStyle(fontSize: 13, color: Colors.black87),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+
+                  const SizedBox(height: 20),
+                  // کادر اختصاصی آخرین آزمایش پایش‌شده در انتها
+                  ElevatedCardBox(
+                    borderRadius: 16,
+                    baseColor: const Color(0xFFFFFBEB),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.biotech, color: Color(0xFFB45309)),
+                            SizedBox(width: 8),
+                            Text('خلاصه آخرین پایش آزمایشگاهی ثبت‌شده', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFFB45309))),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        if (lastTestRec == null)
+                          const Text('هیچ برگه آزمایش برگ یا خاکی در این سال زراعی ثبت نشده است.', style: TextStyle(fontSize: 12, color: Colors.grey))
+                        else ...[
+                          Text('ماه ثبت آزمایش: ${lastTestRec.month} (آزمایش برگ: ${lastTestRec.leafTestDate.isNotEmpty ? lastTestRec.leafTestDate : 'نامشخص'})'),
+                          const SizedBox(height: 4),
+                          Text('بافت خاک: ${lastTestRec.soilType} | Ec خاک: ${lastTestRec.soilElements['Ec'] ?? '-'} | pH خاک: ${lastTestRec.soilElements['pH'] ?? '-'}'),
+                          const SizedBox(height: 4),
+                          Text('Ec آب: ${lastTestRec.waterElements['Ec'] ?? '-'} | TDS آب: ${lastTestRec.waterElements['TDS'] ?? '-'}'),
+                        ]
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ==========================================
+  // بقیه تب‌ها (فروشگاه، سبد خرید، تاریخچه)
+  // ==========================================
   Widget _buildStoreView() {
     return ListView(
       padding: const EdgeInsets.all(16.0),
