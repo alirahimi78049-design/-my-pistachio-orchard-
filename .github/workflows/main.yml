@@ -32,6 +32,9 @@ jobs:
           flutter create --org com.pistachio.orchard pistachio_app
           cd pistachio_app
           
+          # افزودن کتابخانه استاندارد خواندن و نوشتن روی حافظه گوشی
+          flutter pub add path_provider
+          
           TARGET_FILE=$(find .. -maxdepth 3 -iname "main.dart" -not -path "*/pistachio_app/*" | head -n 1)
           if [ -n "$TARGET_FILE" ]; then
             echo "Found main.dart at: $TARGET_FILE"
@@ -48,8 +51,8 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: release-${{ github.run_number }}
-          name: "نسخه نهایی با ذخیره‌سازی داده‌ها (بیلد شماره ${{ github.run_number }})"
-          body: "فایل نصبی APK همراه با ذخیره دائمی مشخصات و زمین‌ها"
+          name: "نسخه نهایی با ذخیره‌سازی دائمی واقعی (بیلد ${{ github.run_number }})"
+          body: "فایل APK تست‌شده همراه با سیستم ذخیره فایل فیزیکی در حافظه دائمی گوشی"
           files: PistachioOrchardApp.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
