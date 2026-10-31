@@ -1,39 +1,33 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 
-void main() {
-  WidgetsFlutterBinding.ensureInitialized();
-  runApp(const PistachioApp());
-}
+// ==========================================
+// موتور ذخیره و بازیابی مستقیم روی دیسک گوشی
+// ==========================================
+class FileStorageService {
+  static Future<File> _getFile(String fileName) async {
+    final directory = await getApplicationDocumentsDirectory();
+    return File('${directory.path}/$fileName.json');
+  }
 
-class PistachioApp extends StatelessWidget {
-  const PistachioApp({super.key});
+  static Future<void> saveString(String fileName, String content) async {
+    try {
+      final file = await _getFile(fileName);
+      await file.writeAsString(content, flush: true);
+    } catch (_) {}
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'سامانه هوشمند باغات پسته',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFFF4F1EA),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF386641),
-          primary: const Color(0xFF386641),
-          secondary: const Color(0xFF6B4226),
-        ),
-        fontFamily: 'Tahoma',
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF2C5134),
-          foregroundColor: Colors.white,
-          centerTitle: true,
-          elevation: 4,
-          shadowColor: Colors.black45,
-        ),
-      ),
-      home: const AuthGateScreen(),
-    );
+  static Future<String?> readString(String fileName) async {
+    try {
+      final file = await _getFile(fileName);
+      if (await file.exists()) {
+        return await file.readAsString();
+      }
+    } catch (_) {}
+    return null;
   }
 }
 
@@ -219,29 +213,52 @@ class MonthlyRecord {
       );
 }
 
-// دیتابیس ایستا و ماندگار درون برنامه (App State Singleton)
-class AppDatabase {
-  static UserProfile? currentUser;
-  static Map<int, String> yearlyNotes = {
-    1404: 'بارندگی مناسب پاییزه - برنامه کودی پتاس و سولفات آمونیوم در دستور کار',
-  };
-  static List<OrchardLand> lands = [
-    OrchardLand(
-      id: 'L-101',
-      name: 'باغ پسته مرکزی',
-      unit: 'هکتار',
-      areaValue: 2.5,
-      standardAreaSquareMeters: 25000.0,
-      treeVarieties: ['اکبری', 'احمد آقایی'],
-    ),
-  ];
-  static List<MonthlyRecord> records = [];
-  static List<CartItem> cartItems = [];
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  UserProfile? savedUser;
+  final userJson = await FileStorageService.readString('user_profile');
+  if (userJson != null) {
+    try {
+      savedUser = UserProfile.fromJson(jsonDecode(userJson));
+    } catch (_) {}
+  }
+  runApp(PistachioApp(initialUser: savedUser));
 }
 
-// ==========================================
-// ویجت‌های سه‌بعدی و عمیق بصری
-// ==========================================
+class PistachioApp extends StatelessWidget {
+  final UserProfile? initialUser;
+  const PistachioApp({super.key, this.initialUser});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'سامانه هوشمند باغات پسته',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        useMaterial3: true,
+        scaffoldBackgroundColor: const Color(0xFFF4F1EA),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF386641),
+          primary: const Color(0xFF386641),
+          secondary: const Color(0xFF6B4226),
+        ),
+        fontFamily: 'Tahoma',
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF2C5134),
+          foregroundColor: Colors.white,
+          centerTitle: true,
+          elevation: 4,
+          shadowColor: Colors.black45,
+        ),
+      ),
+      home: initialUser != null
+          ? MainNavigationShell(currentUser: initialUser!)
+          : const AuthGateScreen(),
+    );
+  }
+}
+
+// ویجت‌های سه‌بعدی
 class ElevatedCardBox extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
@@ -341,7 +358,7 @@ class DeepGradientButton extends StatelessWidget {
   }
 }
 
-// تقویم پویا
+// تقویم شمسی پویا
 Future<String?> showPersianDatePickerDialog(BuildContext context, {int initialYear = 1404}) async {
   int selYear = initialYear;
   int selMonth = 7;
@@ -414,7 +431,7 @@ Future<String?> showPersianDatePickerDialog(BuildContext context, {int initialYe
 }
 
 // ==========================================
-// صفحه ورود
+// صفحه ورود و ثبت اطلاعات
 // ==========================================
 class AuthGateScreen extends StatefulWidget {
   const AuthGateScreen({super.key});
@@ -592,7 +609,7 @@ class _AuthGateScreenState extends State<AuthGateScreen> {
     );
   }
 
-  void _handleLogin() {
+  void _handleLogin() async {
     final name = nameController.text.trim();
     final phone = phoneController.text.trim();
 
@@ -620,8 +637,10 @@ class _AuthGateScreenState extends State<AuthGateScreen> {
       role: selectedRole,
     );
 
-    AppDatabase.currentUser = user;
+    // نوشتن مستقیم روی فایل دیسک گوشی
+    await FileStorageService.saveString('user_profile', jsonEncode(user.toJson()));
 
+    if (!mounted) return;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (ctx) => MainNavigationShell(currentUser: user)),
@@ -630,7 +649,7 @@ class _AuthGateScreenState extends State<AuthGateScreen> {
 }
 
 // ==========================================
-// پوسته اصلی
+// پوسته اصلی متصل به فایل دائمی
 // ==========================================
 class MainNavigationShell extends StatefulWidget {
   final UserProfile currentUser;
@@ -645,6 +664,11 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   int currentTabIndex = 0;
   int selectedYear = 1404;
   final List<int> allAvailableYears = List.generate(45, (index) => 1380 + index);
+
+  Map<int, String> yearlyNotes = {};
+  List<OrchardLand> lands = [];
+  List<MonthlyRecord> records = [];
+  final List<CartItem> cartItems = [];
 
   final List<ProductItem> storeProducts = [
     ProductItem(
@@ -685,13 +709,93 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     ),
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    _loadDataFromDevice();
+  }
+
+  // خواندن فایل‌های متنی از حافظه گوشی
+  Future<void> _loadDataFromDevice() async {
+    // ۱. زمین‌ها
+    final landsData = await FileStorageService.readString('lands_data');
+    if (landsData != null) {
+      try {
+        final List decoded = jsonDecode(landsData);
+        setState(() {
+          lands = decoded.map((e) => OrchardLand.fromJson(e)).toList();
+        });
+      } catch (_) {}
+    } else {
+      setState(() {
+        lands = [
+          OrchardLand(
+            id: 'L-101',
+            name: 'باغ پسته مرکزی',
+            unit: 'هکتار',
+            areaValue: 2.5,
+            standardAreaSquareMeters: 25000.0,
+            treeVarieties: ['اکبری', 'احمد آقایی'],
+          ),
+        ];
+      });
+      _persistLands();
+    }
+
+    // ۲. رکوردها
+    final recsData = await FileStorageService.readString('records_data');
+    if (recsData != null) {
+      try {
+        final List decoded = jsonDecode(recsData);
+        setState(() {
+          records = decoded.map((e) => MonthlyRecord.fromJson(e)).toList();
+        });
+      } catch (_) {}
+    }
+
+    // ۳. یادداشت‌های سالانه
+    final notesData = await FileStorageService.readString('notes_data');
+    if (notesData != null) {
+      try {
+        final Map<String, dynamic> decoded = jsonDecode(notesData);
+        setState(() {
+          yearlyNotes = decoded.map((k, v) => MapEntry(int.parse(k), v.toString()));
+        });
+      } catch (_) {}
+    } else {
+      setState(() {
+        yearlyNotes = {
+          1404: 'بارندگی مناسب پاییزه - برنامه کودی پتاس و سولفات آمونیوم در دستور کار',
+        };
+      });
+    }
+  }
+
+  // ذخیره فایل فیزیکی زمین‌ها
+  Future<void> _persistLands() async {
+    final jsonStr = jsonEncode(lands.map((e) => e.toJson()).toList());
+    await FileStorageService.saveString('lands_data', jsonStr);
+  }
+
+  // ذخیره فایل فیزیکی اقدامات و آزمایش‌ها
+  Future<void> _persistRecords() async {
+    final jsonStr = jsonEncode(records.map((e) => e.toJson()).toList());
+    await FileStorageService.saveString('records_data', jsonStr);
+  }
+
+  // ذخیره فایل فیزیکی یادداشت‌ها
+  Future<void> _persistNotes() async {
+    final jsonStr = jsonEncode(yearlyNotes.map((k, v) => MapEntry(k.toString(), v)));
+    await FileStorageService.saveString('notes_data', jsonStr);
+  }
+
   void _addToCart(ProductItem product) {
     setState(() {
-      final existingIndex = AppDatabase.cartItems.indexWhere((c) => c.product.id == product.id);
+      final existingIndex = cartItems.indexWhere((c) => c.product.id == product.id);
       if (existingIndex != -1) {
-        AppDatabase.cartItems[existingIndex].quantity++;
+        cartItems[existingIndex].quantity++;
       } else {
-        AppDatabase.cartItems.add(CartItem(product: product, quantity: 1));
+        cartItems.add(CartItem(product: product, quantity: 1));
       }
     });
     ScaffoldMessenger.of(context).showSnackBar(
@@ -712,8 +816,9 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             IconButton(
               icon: const Icon(Icons.logout),
               tooltip: 'خروج از حساب',
-              onPressed: () {
-                AppDatabase.currentUser = null;
+              onPressed: () async {
+                await FileStorageService.saveString('user_profile', '');
+                if (!mounted) return;
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (ctx) => const AuthGateScreen()),
@@ -754,13 +859,13 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                     ),
                     NavigationDestination(
                       icon: Badge(
-                        label: Text('${AppDatabase.cartItems.fold<int>(0, (sum, i) => sum + i.quantity)}'),
-                        isLabelVisible: AppDatabase.cartItems.isNotEmpty,
+                        label: Text('${cartItems.fold<int>(0, (sum, i) => sum + i.quantity)}'),
+                        isLabelVisible: cartItems.isNotEmpty,
                         child: const Icon(Icons.shopping_cart_outlined),
                       ),
                       selectedIcon: Badge(
-                        label: Text('${AppDatabase.cartItems.fold<int>(0, (sum, i) => sum + i.quantity)}'),
-                        isLabelVisible: AppDatabase.cartItems.isNotEmpty,
+                        label: Text('${cartItems.fold<int>(0, (sum, i) => sum + i.quantity)}'),
+                        isLabelVisible: cartItems.isNotEmpty,
                         child: const Icon(Icons.shopping_cart, color: Color(0xFF2C5134)),
                       ),
                       label: 'سبد خرید',
@@ -808,7 +913,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   }
 
   Widget _buildFarmerView() {
-    final activeLands = AppDatabase.lands.where((l) => !l.isDeleted).toList();
+    final activeLands = lands.where((l) => !l.isDeleted).toList();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
@@ -1105,7 +1210,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   }
 
   Widget _buildCartView() {
-    if (AppDatabase.cartItems.isEmpty) {
+    if (cartItems.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1123,16 +1228,16 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       );
     }
 
-    final totalAmount = AppDatabase.cartItems.fold<int>(0, (sum, i) => sum + (i.product.priceTomans * i.quantity));
+    final totalAmount = cartItems.fold<int>(0, (sum, i) => sum + (i.product.priceTomans * i.quantity));
 
     return Column(
       children: [
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: AppDatabase.cartItems.length,
+            itemCount: cartItems.length,
             itemBuilder: (context, index) {
-              final item = AppDatabase.cartItems[index];
+              final item = cartItems[index];
               return ElevatedCardBox(
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(12),
@@ -1162,7 +1267,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                               if (item.quantity > 1) {
                                 item.quantity--;
                               } else {
-                                AppDatabase.cartItems.removeAt(index);
+                                cartItems.removeAt(index);
                               }
                             });
                           },
@@ -1220,7 +1325,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                           TextButton(
                             onPressed: () {
                               Navigator.pop(ctx);
-                              setState(() => AppDatabase.cartItems.clear());
+                              setState(() => cartItems.clear());
                             },
                             child: const Text('تأیید پرداخت'),
                           )
@@ -1239,14 +1344,14 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   }
 
   Widget _buildAllLandsHistoryView() {
-    final activeLands = AppDatabase.lands.where((l) => !l.isDeleted).toList();
+    final activeLands = lands.where((l) => !l.isDeleted).toList();
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: activeLands.length,
       itemBuilder: (context, idx) {
         final land = activeLands[idx];
-        final landRecs = AppDatabase.records.where((r) => r.landId == land.id && r.solarYear == selectedYear).toList();
+        final landRecs = records.where((r) => r.landId == land.id && r.solarYear == selectedYear).toList();
 
         return ElevatedCardBox(
           child: Column(
@@ -1317,7 +1422,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   }
 
   void _openYearlyNoteDialog() {
-    final noteCtrl = TextEditingController(text: AppDatabase.yearlyNotes[selectedYear] ?? '');
+    final noteCtrl = TextEditingController(text: yearlyNotes[selectedYear] ?? '');
 
     showDialog(
       context: context,
@@ -1337,8 +1442,10 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('انصراف')),
             DeepGradientButton(
-              onPressed: () {
-                setState(() => AppDatabase.yearlyNotes[selectedYear] = noteCtrl.text.trim());
+              onPressed: () async {
+                setState(() => yearlyNotes[selectedYear] = noteCtrl.text.trim());
+                await _persistNotes();
+                if (!mounted) return;
                 Navigator.pop(ctx);
               },
               child: const Text('ذخیره'),
@@ -1421,7 +1528,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                     width: double.infinity,
                     height: 48,
                     child: DeepGradientButton(
-                      onPressed: () {
+                      onPressed: () async {
                         if (nameCtrl.text.trim().isEmpty || areaCtrl.text.trim().isEmpty) return;
                         final val = double.tryParse(areaCtrl.text.trim()) ?? 1.0;
                         final newLand = OrchardLand(
@@ -1433,8 +1540,10 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                           treeVarieties: selectedVarieties.isEmpty ? ['اکبری'] : selectedVarieties,
                         );
                         setState(() {
-                          AppDatabase.lands.insert(0, newLand);
+                          lands.insert(0, newLand);
                         });
+                        await _persistLands();
+                        if (!mounted) return;
                         Navigator.pop(ctx);
                       },
                       child: const Text('ذخیره زمین', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
@@ -1470,13 +1579,15 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
               TextField(controller: areaCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'مساحت')),
               const SizedBox(height: 16),
               DeepGradientButton(
-                onPressed: () {
+                onPressed: () async {
                   setState(() {
                     land.name = nameCtrl.text.trim();
                     final v = double.tryParse(areaCtrl.text.trim()) ?? land.areaValue;
                     land.areaValue = v;
                     land.standardAreaSquareMeters = selectedUnit == 'هکتار' ? v * 10000 : v;
                   });
+                  await _persistLands();
+                  if (!mounted) return;
                   Navigator.pop(ctx);
                 },
                 child: const Text('ذخیره ویرایش'),
@@ -1519,17 +1630,18 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         builder: (ctx) => SelfDeclarationScreen(
           land: land,
           year: selectedYear,
-          existingRecords: AppDatabase.records,
+          existingRecords: records,
           recordToEdit: recordToEdit,
-          onSave: (newRec) {
+          onSave: (newRec) async {
             setState(() {
               if (recordToEdit != null) {
-                final idx = AppDatabase.records.indexWhere((r) => r.id == recordToEdit.id);
-                if (idx != -1) AppDatabase.records[idx] = newRec;
+                final idx = records.indexWhere((r) => r.id == recordToEdit.id);
+                if (idx != -1) records[idx] = newRec;
               } else {
-                AppDatabase.records.add(newRec);
+                records.add(newRec);
               }
             });
+            await _persistRecords();
           },
         ),
       ),
@@ -1541,32 +1653,10 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   }
 
   Widget _buildConsultantView() {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('کارتابل مشاورین تخصصی باغات پسته', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
-          Expanded(
-            child: DataTable(
-              columns: const [
-                DataColumn(label: Text('ردیف')),
-                DataColumn(label: Text('باغدار')),
-                DataColumn(label: Text('زمین')),
-                DataColumn(label: Text('وضعیت بررسی')),
-              ],
-              rows: const [
-                DataRow(cells: [
-                  DataCell(Text('۱')),
-                  DataCell(Text('علی احمدی')),
-                  DataCell(Text('باغ مرکزی')),
-                  DataCell(Text('در حال بررسی', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold))),
-                ]),
-              ],
-            ),
-          )
-        ],
+    return const Padding(
+      padding: EdgeInsets.all(16.0),
+      child: Center(
+        child: Text('کارتابل مشاورین تخصصی باغات پسته', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
       ),
     );
   }
