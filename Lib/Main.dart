@@ -5,7 +5,53 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
 // ==========================================
-// موتور ذخیره و بازیابی دائمی روی حافظه گوشی
+// موتور تبدیل دقیق تاریخ میلادی گوشی به شمسی
+// ==========================================
+class JalaliDateHelper {
+  static String getNowPersianDate() {
+    final now = DateTime.now();
+    return gregorianToJalali(now.year, now.month, now.day);
+  }
+
+  static String gregorianToJalali(int gy, int gm, int gd) {
+    final gDaysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    final jDaysInMonth = [31, 31, 31, 31, 31, 31, 30, 30, 30, 30, 30, 29];
+
+    int gy2 = (gm > 2) ? (gy + 1) : gy;
+    int gDayNo = 365 * gy + ((gy2 + 3) ~/ 4) - ((gy2 + 99) ~/ 100) + ((gy2 + 399) ~/ 400) - 80;
+    for (int i = 0; i < gm - 1; ++i) {
+      gDayNo += gDaysInMonth[i];
+    }
+    gDayNo += gd;
+
+    int jDayNo = gDayNo - 79;
+    int jNp = jDayNo ~/ 12053;
+    jDayNo %= 12053;
+
+    int jy = 979 + 33 * jNp + 4 * (jDayNo ~/ 1461);
+    jDayNo %= 1461;
+
+    if (jDayNo >= 366) {
+      jy += (jDayNo - 1) ~/ 365;
+      jDayNo = (jDayNo - 1) % 365;
+    }
+
+    int jm = 0;
+    for (int i = 0; i < 11 && jDayNo >= jDaysInMonth[i]; ++i) {
+      jDayNo -= jDaysInMonth[i];
+      jm = i + 1;
+    }
+    int jd = jDayNo + 1;
+    jm = jm + 1;
+
+    final mStr = jm.toString().padLeft(2, '0');
+    final dStr = jd.toString().padLeft(2, '0');
+    return '$jy/$mStr/$dStr';
+  }
+}
+
+// ==========================================
+// موتور ذخیره دائمی دیسک
 // ==========================================
 class FileStorageService {
   static Future<File> _getFile(String fileName) async {
@@ -66,28 +112,30 @@ class UserProfile {
       );
 }
 
-class ProductItem {
+class ProductDetailItem {
   final String id;
   final String title;
-  final String category;
+  final String category; // 'کود و کلات', 'سموم و دفع آفات', 'ابزارآلات باغبانی'
   final int priceTomans;
   final String unit;
-  final String targetElement;
-  final String imageUrl;
+  final String description; // ۵ خط توضیح ویژگی‌ها
+  final String practicalUsage; // شرایط و ماه تجربی مصرف
+  final IconData icon;
 
-  ProductItem({
+  ProductDetailItem({
     required this.id,
     required this.title,
     required this.category,
     required this.priceTomans,
     required this.unit,
-    required this.targetElement,
-    required this.imageUrl,
+    required this.description,
+    required this.practicalUsage,
+    required this.icon,
   });
 }
 
 class CartItem {
-  final ProductItem product;
+  final ProductDetailItem product;
   int quantity;
 
   CartItem({required this.product, this.quantity = 1});
@@ -238,17 +286,16 @@ class PistachioApp extends StatelessWidget {
         useMaterial3: true,
         scaffoldBackgroundColor: const Color(0xFFF4F1EA),
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF386641),
-          primary: const Color(0xFF386641),
+          seedColor: const Color(0xFF2E5329),
+          primary: const Color(0xFF2E5329),
           secondary: const Color(0xFF6B4226),
         ),
         fontFamily: 'Tahoma',
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF2C5134),
+          backgroundColor: Color(0xFF244420),
           foregroundColor: Colors.white,
           centerTitle: true,
-          elevation: 4,
-          shadowColor: Colors.black45,
+          elevation: 3,
         ),
       ),
       home: initialUser != null
@@ -258,9 +305,7 @@ class PistachioApp extends StatelessWidget {
   }
 }
 
-// ==========================================
 // ویجت‌های سه‌بعدی
-// ==========================================
 class ElevatedCardBox extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
@@ -286,21 +331,12 @@ class ElevatedCardBox extends StatelessWidget {
         borderRadius: BorderRadius.circular(borderRadius),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            offset: const Offset(0, 8),
-            blurRadius: 16,
-            spreadRadius: 1,
-          ),
-          BoxShadow(
-            color: const Color(0xFF2C5134).withOpacity(0.05),
-            offset: const Offset(0, 2),
-            blurRadius: 6,
+            color: Colors.black.withOpacity(0.06),
+            offset: const Offset(0, 6),
+            blurRadius: 14,
           ),
         ],
-        border: Border.all(
-          color: Colors.white.withOpacity(0.9),
-          width: 1.5,
-        ),
+        border: Border.all(color: const Color(0xFFE5DFD5), width: 1.2),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
@@ -323,8 +359,8 @@ class DeepGradientButton extends StatelessWidget {
     super.key,
     required this.onPressed,
     required this.child,
-    this.colors = const [Color(0xFF4A7C43), Color(0xFF2E5329)],
-    this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    this.colors = const [Color(0xFF386641), Color(0xFF224227)],
+    this.padding = const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
   });
 
   @override
@@ -332,17 +368,9 @@ class DeepGradientButton extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        gradient: LinearGradient(
-          colors: colors,
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: LinearGradient(colors: colors, begin: Alignment.topLeft, end: Alignment.bottomRight),
         boxShadow: [
-          BoxShadow(
-            color: colors.last.withOpacity(0.35),
-            offset: const Offset(0, 4),
-            blurRadius: 10,
-          ),
+          BoxShadow(color: colors.last.withOpacity(0.3), offset: const Offset(0, 3), blurRadius: 8),
         ],
       ),
       child: ElevatedButton(
@@ -360,11 +388,12 @@ class DeepGradientButton extends StatelessWidget {
   }
 }
 
-// تقویم شمسی پویا
-Future<String?> showPersianDatePickerDialog(BuildContext context, {int initialYear = 1404}) async {
-  int selYear = initialYear;
-  int selMonth = 7;
-  int selDay = 15;
+// تقویم دیالوگی تقویمی و حرفه‌ای شمسی
+Future<String?> showModernPersianDatePicker(BuildContext context, {required String initialDate}) async {
+  final parts = initialDate.split('/');
+  int selYear = parts.isNotEmpty ? (int.tryParse(parts[0]) ?? 1404) : 1404;
+  int selMonth = parts.length > 1 ? (int.tryParse(parts[1]) ?? 7) : 7;
+  int selDay = parts.length > 2 ? (int.tryParse(parts[2]) ?? 15) : 15;
 
   final months = [
     'فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور',
@@ -374,51 +403,67 @@ Future<String?> showPersianDatePickerDialog(BuildContext context, {int initialYe
   return showDialog<String>(
     context: context,
     builder: (ctx) => StatefulBuilder(
-      builder: (context, setStateDialog) => Directionality(
+      builder: (context, setPickerState) => Directionality(
         textDirection: TextDirection.rtl,
         child: AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('انتخاب تاریخ شمسی', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('انتخاب تاریخ روز', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              TextButton(
+                onPressed: () {
+                  final nowStr = JalaliDateHelper.getNowPersianDate();
+                  final p = nowStr.split('/');
+                  setPickerState(() {
+                    selYear = int.parse(p[0]);
+                    selMonth = int.parse(p[1]);
+                    selDay = int.parse(p[2]);
+                  });
+                },
+                child: const Text('تنظیم تاریخ امروز گوشی', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF2E5329))),
+              )
+            ],
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                decoration: BoxDecoration(color: const Color(0xFFE8F1E7), borderRadius: BorderRadius.circular(12)),
+                child: Text(
+                  '$selYear / ${selMonth.toString().padLeft(2, '0')} / ${selDay.toString().padLeft(2, '0')}',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF244420)),
+                ),
+              ),
+              const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   DropdownButton<int>(
                     value: selYear,
-                    items: List.generate(45, (i) => 1380 + i).map((y) {
-                      return DropdownMenuItem(value: y, child: Text('$y'));
-                    }).toList(),
-                    onChanged: (v) => setStateDialog(() => selYear = v!),
+                    items: List.generate(45, (i) => 1380 + i).map((y) => DropdownMenuItem(value: y, child: Text('$y'))).toList(),
+                    onChanged: (v) => setPickerState(() => selYear = v!),
                   ),
                   DropdownButton<int>(
                     value: selMonth,
-                    items: List.generate(12, (i) => i + 1).map((m) {
-                      return DropdownMenuItem(value: m, child: Text(months[m - 1]));
-                    }).toList(),
-                    onChanged: (v) => setStateDialog(() => selMonth = v!),
+                    items: List.generate(12, (i) => i + 1).map((m) => DropdownMenuItem(value: m, child: Text(months[m - 1]))).toList(),
+                    onChanged: (v) => setPickerState(() => selMonth = v!),
                   ),
                   DropdownButton<int>(
                     value: selDay,
-                    items: List.generate(selMonth <= 6 ? 31 : (selMonth <= 11 ? 30 : 29), (i) => i + 1).map((d) {
-                      return DropdownMenuItem(value: d, child: Text('$d'));
-                    }).toList(),
-                    onChanged: (v) => setStateDialog(() => selDay = v!),
+                    items: List.generate(selMonth <= 6 ? 31 : (selMonth <= 11 ? 30 : 29), (i) => i + 1)
+                        .map((d) => DropdownMenuItem(value: d, child: Text('$d'))).toList(),
+                    onChanged: (v) => setPickerState(() => selDay = v!),
                   ),
                 ],
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'تاریخ انتخاب‌شده: $selYear/${selMonth.toString().padLeft(2, '0')}/${selDay.toString().padLeft(2, '0')}',
-                style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF386641)),
               ),
             ],
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx, null), child: const Text('انصراف')),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF386641), foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E5329), foregroundColor: Colors.white),
               onPressed: () {
                 final dateStr = '$selYear/${selMonth.toString().padLeft(2, '0')}/${selDay.toString().padLeft(2, '0')}';
                 Navigator.pop(ctx, dateStr);
@@ -478,38 +523,28 @@ class _AuthGateScreenState extends State<AuthGateScreen> {
         body: SingleChildScrollView(
           child: Column(
             children: [
-              Stack(
-                children: [
-                  Container(
-                    height: 250,
-                    width: double.infinity,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF2C5134),
-                      image: DecorationImage(
-                        image: NetworkImage('https://images.unsplash.com/photo-1543257580-7269da773bf5?auto=format&fit=crop&w=800&q=80'),
-                        fit: BoxFit.cover,
-                      ),
-                      borderRadius: BorderRadius.vertical(bottom: Radius.circular(36)),
-                    ),
+              Container(
+                height: 220,
+                width: double.infinity,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF1B3818), Color(0xFF2C5528)],
+                    begin: Alignment.topRight,
+                    end: Alignment.bottomLeft,
                   ),
-                  Container(
-                    height: 250,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Colors.black.withOpacity(0.7), Colors.transparent],
-                        begin: Alignment.bottomCenter,
-                        end: Alignment.topCenter,
-                      ),
-                      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(36)),
-                    ),
-                    alignment: Alignment.bottomCenter,
-                    padding: const EdgeInsets.all(24),
-                    child: const Text(
+                  borderRadius: BorderRadius.vertical(bottom: Radius.circular(36)),
+                ),
+                child: const Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.park, size: 68, color: Color(0xFFC7E6C0)),
+                    SizedBox(height: 10),
+                    Text(
                       'سامانه هوشمند باغات پسته',
-                      style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                      style: TextStyle(color: Colors.white, fontSize: 23, fontWeight: FontWeight.bold),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               Transform.translate(
                 offset: const Offset(0, -20),
@@ -650,7 +685,7 @@ class _AuthGateScreenState extends State<AuthGateScreen> {
 }
 
 // ==========================================
-// پوسته اصلی برنامه همراه با کادر بالای بزرگ و گزارش‌گیری
+// پوسته اصلی
 // ==========================================
 class MainNavigationShell extends StatefulWidget {
   final UserProfile currentUser;
@@ -671,42 +706,82 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   List<MonthlyRecord> records = [];
   final List<CartItem> cartItems = [];
 
-  final List<ProductItem> storeProducts = [
-    ProductItem(
-      id: 'P-101',
-      title: 'سودوپتاس ۵۲٪ (سولفات پتاسیم)',
-      category: 'تغذیه و کود',
+  // کاتالوگ جامع فروشگاه طبق ۳ دسته مورد نظر
+  final List<ProductDetailItem> allProducts = [
+    // ۱: کودها و کلات‌ها
+    ProductDetailItem(
+      id: 'F-101',
+      title: 'سودوپتاس ۵۲٪ (سولفات پتاسیم محلول)',
+      category: 'کود و کلات',
       priceTomans: 1850000,
       unit: 'کیسه ۲۵ کیلوگرمی',
-      targetElement: 'K',
-      imageUrl: 'https://images.unsplash.com/photo-1585314062340-f1a5a7c9328d?auto=format&fit=crop&w=300&q=80',
+      icon: Icons.grain,
+      description: '• تأمین سریع و باکیفیت پتاسیم و گوگرد محلول برای درختان بارور\n• افزایش چشمگیر وزن، پر شدن مغز و خندان شدن طبیعی پسته\n• بهبود ضخامت پوست استخوانی و جلوگیری از عارضه لکه‌پوست\n• تقویت سیستم ایمنی گیاه در برابر تنش شوری و کم‌آبی\n• کاملاً محلول در آب با حلالیت ۱۰۰ درصد بدون رسوب‌گذاری',
+      practicalUsage: 'بر حسب تجربه در ماه‌های تیر و مرداد (زمان پر شدن مغز پسته) در ۲ تا ۳ نوبت همراه با آب آبیاری یا محلول‌پاشی مصرف گردد.',
     ),
-    ProductItem(
-      id: 'P-102',
-      title: 'کلات آهن ۶٪ ارتو-ارتو آلمانی',
-      category: 'تغذیه و کود',
+    ProductDetailItem(
+      id: 'F-102',
+      title: 'کلات آهن ۶٪ ارتو-ارتو (EDDHA)',
+      category: 'کود و کلات',
       priceTomans: 950000,
-      unit: 'بسته ۱ کیلوگرمی',
-      targetElement: 'Fe',
-      imageUrl: 'https://images.unsplash.com/photo-1628352081506-83c43123ed6d?auto=format&fit=crop&w=300&q=80',
+      unit: 'بسته ۱ کیلوگرمی پودری',
+      icon: Icons.science,
+      description: '• بهترین و پایدارترین فرم آهن برای خاک‌های قلیایی و آهکی پسته\n• برطرف‌کننده سریع زردی بین رگبرگی و کلروز ناشی از کمبود آهن\n• پایداری فوق‌العاده در خاک‌های دارای pH بالاتر از ۷.۵\n• افزایش فتوسنتز و شادابی برگ‌ها در شروع فصل رشد\n• فاقد سدیم و کلر و کاملاً ایمن برای ریشه‌های حساس',
+      practicalUsage: 'در فروردین و اردیبهشت ماه همزمان با آغاز رشد رویشی شاخه‌ها در سایه‌انداز درخت به صورت خاکی یا همراه با آب اول و دوم مصرف شود.',
     ),
-    ProductItem(
-      id: 'P-103',
-      title: 'صابون محلول‌پاشی گیاهی ضد پسیل',
-      category: 'سموم و محافظت',
+    ProductDetailItem(
+      id: 'F-103',
+      title: 'کود فروت‌ست مایع (روی، بور و ازت)',
+      category: 'کود و کلات',
+      priceTomans: 780000,
+      unit: 'گالن ۵ لیتری',
+      icon: Icons.eco,
+      description: '• افزایش چشمگیر تلقیح و گرده‌افشانی و جلوگیری از ریزش جوانه‌ها\n• تقویت جوانه زایشی سال بعد و کاهش سال‌آوری درختان\n• تأمین انرژی اولیه درخت قبل از باز شدن کامل ریشه‌ها\n• افزایش تعداد دانه‌های سالم در هر خوشه\n• حاوی اسیدآمینه‌های محرک رشد جهت جذب سریع',
+      practicalUsage: 'دو نوبت طلایی: نوبت اول در اسفند ماه (زمان تورم جوانه‌ها) و نوبت دوم در شهریور/مهر بلافاصله پس از برداشت محصول به صورت محلول‌پاشی.',
+    ),
+
+    // ۲: سموم و کنترل آفات
+    ProductDetailItem(
+      id: 'P-201',
+      title: 'صابون محلول‌پاشی پتاسیمی گیاهی (ضد پسیل)',
+      category: 'سموم و دفع آفات',
       priceTomans: 620000,
       unit: 'گالن ۵ لیتری',
-      targetElement: '',
-      imageUrl: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=300&q=80',
+      icon: Icons.shield,
+      description: '• شستشوی کامل شکرک و عسلک شیره خشک پسیل از روی برگ‌ها\n• از بین بردن پوره و حشرات کامل بدون ایجاد مقاومت دارویی\n• بهبود تنفس برگ‌ها و جلوگیری از برگ‌ریزی ناشی از آفت\n• تقویت ساختار برگ به دلیل داشتن درصد مناسبی از پتاسیم\n• کاملاً ارگانیک، بدون دوره کارنس و بدون اثر منفی بر محیط‌زیست',
+      practicalUsage: 'در ماه‌های خرداد، تیر و مرداد به محض مشاهده طغیان پسیل و ایجاد عسلک در ساعات خنک صبح زود یا غروب آفتاب با دوز ۲ تا ۲.۵ در هزار محلول‌پاشی شود.',
     ),
-    ProductItem(
-      id: 'P-104',
-      title: 'قیچی هرس شارژی دو باتری بروس',
-      category: 'ادوات باغبانی',
-      priceTomans: 4800000,
-      unit: 'یک ست کامل',
-      targetElement: '',
-      imageUrl: 'https://images.unsplash.com/photo-1617576683096-00fc8eecb3af?auto=format&fit=crop&w=300&q=80',
+    ProductDetailItem(
+      id: 'P-202',
+      title: 'قارچ‌کش و محافظ مس بردوفیکس',
+      category: 'سموم و دفع آفات',
+      priceTomans: 490000,
+      unit: 'بطری ۱ لیتری',
+      icon: Icons.healing,
+      description: '• پیشگیری و درمان مؤثر گموز (پوسیدگی طوقه و ریشه پسته)\n• ضدعفونی‌کننده قوی زخم‌های ناشی از هرس، سرمازدگی و تگرگ\n• ماندگاری بالا روی تنه درخت و مقاومت در برابر باران‌شویی\n• فاقد سمیت برای زنبور عسل در صورت استفاده اصولی\n• پیشگیری از شانکر و لکه‌برگی‌های باکتریایی و قارچی',
+      practicalUsage: 'در فصل پاییز پس از ریزش برگ‌ها و در اواخر زمستان قبل از بیداری درختان، همچنین رنگ‌آمیزی طوقه درخت با برس در اردیبهشت ماه.',
+    ),
+
+    // ۳: ابزارآلات باغبانی
+    ProductDetailItem(
+      id: 'T-301',
+      title: 'قیچی هرس شارژی دو باتری براشلس ۳۵ میلی‌متر',
+      category: 'ابزارآلات باغبانی',
+      priceTomans: 5200000,
+      unit: 'یک ست کامل همراه با کیف و ۲ باتری',
+      icon: Icons.content_cut,
+      description: '• تیغه فولادی کربنی ضدزنگ SK5 بسیار تیز با برش تمیز و بدون لهیدگی\n• موتور پرقدرت براشلس با کارکرد مداوم ۶ تا ۸ ساعت با دو باتری\n• سبک و ارگونومیک، کاهش ۹۰ درصدی خستگی دست در هرس زمستانه\n• قابلیت تنظیم دهانه برش از ۲۰ تا ۳۵ میلی‌متر برای شاخه‌های خشک\n• همراه با جعبه ابزار، روغن روان‌کننده و سنگ سنباده',
+      practicalUsage: 'مخصوص هرس فرم‌دهی و باردهی درختان در ماه‌های آذر، دی و بهمن؛ همچنین هرس سبز پاجوش‌ها و نرک‌ها در اوایل تابستان.',
+    ),
+    ProductDetailItem(
+      id: 'T-302',
+      title: 'چسب پیوند و هرس محافظت باغبانی با قارچ‌کش',
+      category: 'ابزارآلات باغبانی',
+      priceTomans: 120000,
+      unit: 'قوطی ۱ کیلوگرمی',
+      icon: Icons.brush,
+      description: '• پوشش سریع مقاطع برش هرس برای جلوگیری از ورود قارچ و گموز\n• کمک به گیرایی ۱۰۰ درصدی پیوندک‌های ارقام مختلف پسته\n• مقاوم در برابر گرما و آفتاب شدید تابستان بدون ترک‌خوردگی\n• حاوی مواد محافظ طبیعی الاستیک برای ترمیم سریع پوست درخت\n• آماده مصرف بدون نیاز به حرارت دادن یا رقیق‌سازی',
+      practicalUsage: 'در زمان هرس زمستانه روی شاخه‌های ضخیم‌تر از ۲ سانتیمتر و در خرداد ماه بر روی پیوندهای لوله‌ای و شکمی جدید.',
     ),
   ];
 
@@ -759,12 +834,6 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           yearlyNotes = decoded.map((k, v) => MapEntry(int.parse(k), v.toString()));
         });
       } catch (_) {}
-    } else {
-      setState(() {
-        yearlyNotes = {
-          1404: 'بارندگی مناسب پاییزه - برنامه کودی پتاس و سولفات آمونیوم در دستور کار',
-        };
-      });
     }
   }
 
@@ -783,7 +852,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     await FileStorageService.saveString('notes_data', jsonStr);
   }
 
-  void _addToCart(ProductItem product) {
+  void _addToCart(ProductDetailItem product) {
     setState(() {
       final existingIndex = cartItems.indexWhere((c) => c.product.id == product.id);
       if (existingIndex != -1) {
@@ -799,13 +868,11 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
 
   @override
   Widget build(BuildContext context) {
-    final isConsultant = widget.currentUser.role == 'مشاور/مدیر';
-
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
         appBar: AppBar(
-          title: Text(isConsultant ? 'کارتابل مشاور مدیریت' : _getAppBarTitle()),
+          title: Text(_getAppBarTitle()),
           actions: [
             IconButton(
               icon: const Icon(Icons.logout),
@@ -821,57 +888,55 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             )
           ],
         ),
-        body: isConsultant ? _buildConsultantView() : _buildCurrentBody(),
-        bottomNavigationBar: isConsultant
-            ? null
-            : Container(
-                decoration: BoxDecoration(
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
-                      offset: const Offset(0, -4),
-                      blurRadius: 16,
-                    )
-                  ],
-                ),
-                child: NavigationBar(
-                  elevation: 0,
-                  backgroundColor: Colors.white,
-                  indicatorColor: const Color(0xFFD4E7D2),
-                  selectedIndex: currentTabIndex,
-                  onDestinationSelected: (idx) => setState(() => currentTabIndex = idx),
-                  destinations: [
-                    const NavigationDestination(
-                      icon: Icon(Icons.landscape_outlined),
-                      selectedIcon: Icon(Icons.landscape, color: Color(0xFF2C5134)),
-                      label: 'زمین‌های من',
-                    ),
-                    const NavigationDestination(
-                      icon: Icon(Icons.storefront_outlined),
-                      selectedIcon: Icon(Icons.storefront, color: Color(0xFF2C5134)),
-                      label: 'فروشگاه نهاده‌ها',
-                    ),
-                    NavigationDestination(
-                      icon: Badge(
-                        label: Text('${cartItems.fold<int>(0, (sum, i) => sum + i.quantity)}'),
-                        isLabelVisible: cartItems.isNotEmpty,
-                        child: const Icon(Icons.shopping_cart_outlined),
-                      ),
-                      selectedIcon: Badge(
-                        label: Text('${cartItems.fold<int>(0, (sum, i) => sum + i.quantity)}'),
-                        isLabelVisible: cartItems.isNotEmpty,
-                        child: const Icon(Icons.shopping_cart, color: Color(0xFF2C5134)),
-                      ),
-                      label: 'سبد خرید',
-                    ),
-                    const NavigationDestination(
-                      icon: Icon(Icons.history_edu_outlined),
-                      selectedIcon: Icon(Icons.history_edu, color: Color(0xFF2C5134)),
-                      label: 'تاریخچه و آزمایش',
-                    ),
-                  ],
-                ),
+        body: _buildCurrentBody(),
+        bottomNavigationBar: Container(
+          decoration: BoxDecoration(
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                offset: const Offset(0, -4),
+                blurRadius: 16,
+              )
+            ],
+          ),
+          child: NavigationBar(
+            elevation: 0,
+            backgroundColor: Colors.white,
+            indicatorColor: const Color(0xFFD4E7D2),
+            selectedIndex: currentTabIndex,
+            onDestinationSelected: (idx) => setState(() => currentTabIndex = idx),
+            destinations: [
+              const NavigationDestination(
+                icon: Icon(Icons.landscape_outlined),
+                selectedIcon: Icon(Icons.landscape, color: Color(0xFF2C5134)),
+                label: 'زمین‌های من',
               ),
+              const NavigationDestination(
+                icon: Icon(Icons.storefront_outlined),
+                selectedIcon: Icon(Icons.storefront, color: Color(0xFF2C5134)),
+                label: 'فروشگاه نهاده‌ها',
+              ),
+              NavigationDestination(
+                icon: Badge(
+                  label: Text('${cartItems.fold<int>(0, (sum, i) => sum + i.quantity)}'),
+                  isLabelVisible: cartItems.isNotEmpty,
+                  child: const Icon(Icons.shopping_cart_outlined),
+                ),
+                selectedIcon: Badge(
+                  label: Text('${cartItems.fold<int>(0, (sum, i) => sum + i.quantity)}'),
+                  isLabelVisible: cartItems.isNotEmpty,
+                  child: const Icon(Icons.shopping_cart, color: Color(0xFF2C5134)),
+                ),
+                label: 'سبد خرید',
+              ),
+              const NavigationDestination(
+                icon: Icon(Icons.history_edu_outlined),
+                selectedIcon: Icon(Icons.history_edu, color: Color(0xFF2C5134)),
+                label: 'تاریخچه و آزمایش',
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -881,11 +946,11 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       case 0:
         return 'مدیریت باغات: ${widget.currentUser.fullName}';
       case 1:
-        return 'فروشگاه تخصصی نهاده‌های پسته';
+        return 'فروشگاه تخصصی نهاده‌ها و ابزار پسته';
       case 2:
         return 'سبد خرید و تسویه‌حساب';
       case 3:
-        return 'تاریخچه و تحلیل هوشمند آزمایش‌ها';
+        return 'تاریخچه و پایش آزمایشگاهی';
       default:
         return 'سامانه هوشمند باغات پسته';
     }
@@ -896,7 +961,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       case 0:
         return _buildFarmerView();
       case 1:
-        return _buildStoreView();
+        return _buildCategorizedStoreView();
       case 2:
         return _buildCartView();
       case 3:
@@ -907,7 +972,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   }
 
   // ==========================================
-  // تب ۱: داشبورد با کادر بالای بزرگ، تصویر پسته و دکمه گزارش
+  // تب ۱: داشبورد با آیکون شفاف و واضح وکتوری
   // ==========================================
   Widget _buildFarmerView() {
     final activeLands = lands.where((l) => !l.isDeleted).toList();
@@ -917,7 +982,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // کادر بالای بزرگ و چشم‌نواز با تصویر درخت پسته
+          // کادر بالا با آیکون کاملاً شفاف و واضح بدون وابستگی به اینترنت
           ElevatedCardBox(
             borderRadius: 20,
             padding: const EdgeInsets.all(16),
@@ -925,23 +990,22 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
               children: [
                 Row(
                   children: [
-                    // تصویر باکیفیت درخت و محصول پسته
                     Container(
-                      width: 72,
-                      height: 72,
+                      width: 65,
+                      height: 65,
                       decoration: BoxDecoration(
+                        color: const Color(0xFF244420),
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.12),
-                            blurRadius: 8,
-                            offset: const Offset(0, 3),
+                            color: const Color(0xFF244420).withOpacity(0.3),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
                           )
                         ],
-                        image: const DecorationImage(
-                          image: NetworkImage('https://images.unsplash.com/photo-1543257580-7269da773bf5?auto=format&fit=crop&w=400&q=80'),
-                          fit: BoxFit.cover,
-                        ),
+                      ),
+                      child: const Center(
+                        child: Icon(Icons.eco, size: 38, color: Color(0xFFA5D6A7)),
                       ),
                     ),
                     const SizedBox(width: 14),
@@ -951,7 +1015,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                         children: [
                           const Text(
                             'مدیریت باغات و اقدامات سالانه',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2C5134)),
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF244420)),
                           ),
                           const SizedBox(height: 4),
                           Text(
@@ -963,14 +1027,13 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                     ),
                   ],
                 ),
-                const Divider(height: 24),
+                const Divider(height: 22),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   alignment: WrapAlignment.spaceBetween,
                   children: [
-                    // انتخاب سال
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                       decoration: BoxDecoration(
@@ -999,7 +1062,6 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                         ],
                       ),
                     ),
-                    // یادداشت سال
                     OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
                         foregroundColor: const Color(0xFF6B4226),
@@ -1011,7 +1073,6 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                       icon: const Icon(Icons.note_alt_outlined, size: 16),
                       label: const Text('یادداشت سال', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                     ),
-                    // دکمه گزارش کلی سال
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF1E3A8A),
@@ -1031,7 +1092,6 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                       icon: const Icon(Icons.analytics_outlined, size: 16),
                       label: const Text('گزارش سالانه', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                     ),
-                    // افزودن زمین
                     DeepGradientButton(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       onPressed: _openAddLandDialog,
@@ -1071,7 +1131,6 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     );
   }
 
-  // کارت زمین همراه با دکمه گزارش اختصاصی زمین
   Widget _buildDeepLandCard(OrchardLand land) {
     return ElevatedCardBox(
       borderRadius: 18,
@@ -1089,7 +1148,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                       color: const Color(0xFFE8F1E7),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.eco, color: Color(0xFF2C5134), size: 22),
+                    child: const Icon(Icons.park, color: Color(0xFF2C5134), size: 22),
                   ),
                   const SizedBox(width: 10),
                   Text(
@@ -1100,7 +1159,6 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
               ),
               Row(
                 children: [
-                  // دکمه گزارش سریع اختصاصی این زمین
                   IconButton(
                     icon: const Icon(Icons.assignment_outlined, color: Color(0xFF1E3A8A), size: 22),
                     tooltip: 'گزارش کامل اقدامات سالانه این زمین',
@@ -1191,269 +1249,160 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   }
 
   // ==========================================
-  // صفحه گزارش‌گیری کامل اقدامات سالانه
+  // تب ۲: فروشگاه تخصصی ۳ کادره (کود و کلات، سموم، ابزارآلات)
   // ==========================================
-  void _openYearlyReport(OrchardLand land) {
-    final landRecs = records.where((r) => r.landId == land.id && r.solarYear == selectedYear).toList();
+  Widget _buildCategorizedStoreView() {
+    final fertilizerList = allProducts.where((p) => p.category == 'کود و کلات').toList();
+    final pestList = allProducts.where((p) => p.category == 'سموم و دفع آفات').toList();
+    final toolList = allProducts.where((p) => p.category == 'ابزارآلات باغبانی').toList();
 
-    // مرتب‌سازی ماه‌ها طبق تقویم شمسی
-    final monthsOrder = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
-    landRecs.sort((a, b) => monthsOrder.indexOf(a.month).compareTo(monthsOrder.indexOf(b.month)));
-
-    MonthlyRecord? lastTestRec;
-    for (var r in landRecs.reversed) {
-      if (r.leafTestDate.isNotEmpty || r.soilTestDate.isNotEmpty) {
-        lastTestRec = r;
-        break;
-      }
-    }
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (ctx) => Directionality(
-          textDirection: TextDirection.rtl,
-          child: Scaffold(
-            appBar: AppBar(
-              title: Text('گزارش اقدامات سالانه: ${land.name} ($selectedYear)'),
-              backgroundColor: const Color(0xFF1E3A8A),
-            ),
-            body: SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // خلاصه مشخصات قطعه و سال
-                  ElevatedCardBox(
-                    borderRadius: 16,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(land.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E3A8A))),
-                            Text('سال زراعی: $selectedYear', style: const TextStyle(fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Text('مساحت: ${land.areaValue} ${land.unit} (${land.standardAreaSquareMeters.toStringAsFixed(0)} متر مربع) | ارقام: ${land.treeVarieties.join('، ')}'),
-                        if (yearlyNotes[selectedYear] != null && yearlyNotes[selectedYear]!.isNotEmpty) ...[
-                          const Divider(height: 16),
-                          Text('یادداشت کلی سال زراعی: ${yearlyNotes[selectedYear]}', style: const TextStyle(color: Color(0xFF6B4226), fontWeight: FontWeight.bold, fontSize: 13)),
-                        ]
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 12),
-                  const Text('اقدامات و فعالیت‌های ثبت‌شده در طول سال (به تفکیک ماه):', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2C5134))),
-                  const SizedBox(height: 10),
-
-                  if (landRecs.isEmpty)
-                    _buildEmptyState('هیچ اقدام ماهانه‌ای در سال $selectedYear برای این زمین ثبت نشده است.')
-                  else
-                    ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: landRecs.length,
-                      itemBuilder: (context, index) {
-                        final rec = landRecs[index];
-                        return ElevatedCardBox(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          padding: const EdgeInsets.all(14),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF386641),
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                        child: Text(rec.month, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                                      ),
-                                      const SizedBox(width: 10),
-                                      Text('${rec.variety} (${rec.treeCount} ${rec.countType})', style: const TextStyle(fontWeight: FontWeight.bold)),
-                                    ],
-                                  ),
-                                  Text('${rec.ageGroup} - ${rec.treeAge} ساله', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                                ],
-                              ),
-                              const SizedBox(height: 10),
-                              if (rec.irrigationDates.isNotEmpty) ...[
-                                Row(
-                                  children: [
-                                    const Text('دوره‌های آبیاری: ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                                    Expanded(
-                                      child: Wrap(
-                                        spacing: 6,
-                                        children: rec.irrigationDates.map((d) => Chip(
-                                          label: Text(d, style: const TextStyle(fontSize: 11)),
-                                          backgroundColor: const Color(0xFFE8F1E7),
-                                          padding: EdgeInsets.zero,
-                                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                        )).toList(),
-                                      ),
-                                    )
-                                  ],
-                                ),
-                                const SizedBox(height: 6),
-                              ],
-                              Text(
-                                rec.periodNotes.isNotEmpty
-                                    ? 'اقدامات و مشاهدات ثبت‌شده: ${rec.periodNotes}'
-                                    : 'هیچ یادداشتی برای این ماه ثبت نشده است.',
-                                style: const TextStyle(fontSize: 13, color: Colors.black87),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-
-                  const SizedBox(height: 20),
-                  // کادر اختصاصی آخرین آزمایش پایش‌شده در انتها
-                  ElevatedCardBox(
-                    borderRadius: 16,
-                    baseColor: const Color(0xFFFFFBEB),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Row(
-                          children: [
-                            Icon(Icons.biotech, color: Color(0xFFB45309)),
-                            SizedBox(width: 8),
-                            Text('خلاصه آخرین پایش آزمایشگاهی ثبت‌شده', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFFB45309))),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        if (lastTestRec == null)
-                          const Text('هیچ برگه آزمایش برگ یا خاکی در این سال زراعی ثبت نشده است.', style: TextStyle(fontSize: 12, color: Colors.grey))
-                        else ...[
-                          Text('ماه ثبت آزمایش: ${lastTestRec.month} (آزمایش برگ: ${lastTestRec.leafTestDate.isNotEmpty ? lastTestRec.leafTestDate : 'نامشخص'})'),
-                          const SizedBox(height: 4),
-                          Text('بافت خاک: ${lastTestRec.soilType} | Ec خاک: ${lastTestRec.soilElements['Ec'] ?? '-'} | pH خاک: ${lastTestRec.soilElements['pH'] ?? '-'}'),
-                          const SizedBox(height: 4),
-                          Text('Ec آب: ${lastTestRec.waterElements['Ec'] ?? '-'} | TDS آب: ${lastTestRec.waterElements['TDS'] ?? '-'}'),
-                        ]
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ==========================================
-  // بقیه تب‌ها (فروشگاه، سبد خرید، تاریخچه)
-  // ==========================================
-  Widget _buildStoreView() {
     return ListView(
       padding: const EdgeInsets.all(16.0),
       children: [
-        ElevatedCardBox(
-          baseColor: const Color(0xFFEAF4E9),
-          borderRadius: 14,
-          padding: const EdgeInsets.all(12),
-          child: const Row(
-            children: [
-              Icon(Icons.verified, color: Color(0xFF2C5134)),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'نهاده‌های دارای استاندارد و تاییدیه کیفی با ضمانت بازگشت وجه',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF1F3A25)),
-                ),
-              ),
-            ],
-          ),
+        // کادر ۱: کودهای شیمیایی و کلات‌ها
+        _buildStoreCategorySection(
+          title: '۱. کودهای شیمیایی، کلات‌ها و ریزمغذی‌ها',
+          subtitle: 'شامل سولفات پتاسیم، آهن ارتو-ارتو، اسید هیومیک و فروت‌ست با راهنمای ماه مصرف',
+          badgeColor: const Color(0xFF2E7D32),
+          icon: Icons.grain,
+          products: fertilizerList,
         ),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 14,
-            mainAxisSpacing: 14,
-            childAspectRatio: 0.65,
-          ),
-          itemCount: storeProducts.length,
-          itemBuilder: (context, index) {
-            final p = storeProducts[index];
-            return Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
-                    blurRadius: 12,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-                border: Border.all(color: const Color(0xFFEFECE5)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                    child: Image.network(
-                      p.imageUrl,
-                      height: 115,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(10.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          p.title,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(p.unit, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                        const SizedBox(height: 8),
-                        Text(
-                          '${p.priceTomans.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')} تومان',
-                          style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2C5134), fontSize: 13),
-                        ),
-                        const SizedBox(height: 8),
-                        SizedBox(
-                          width: double.infinity,
-                          child: DeepGradientButton(
-                            padding: const EdgeInsets.symmetric(vertical: 6),
-                            onPressed: () => _addToCart(p),
-                            child: const Text('افزودن به سبد', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                          ),
-                        )
-                      ],
-                    ),
-                  )
-                ],
-              ),
-            );
-          },
+        const SizedBox(height: 18),
+
+        // کادر ۲: سموم و کنترل آفات
+        _buildStoreCategorySection(
+          title: '۲. سموم مجاز و کنترل تخصصی آفات پسته',
+          subtitle: 'شامل صابون‌های محلول‌پاشی ضد پسیل، قارچ‌کش‌های طوقه و ترکیبات مسی',
+          badgeColor: const Color(0xFFC62828),
+          icon: Icons.shield,
+          products: pestList,
+        ),
+        const SizedBox(height: 18),
+
+        // کادر ۳: ابزارآلات و ادوات باغبانی
+        _buildStoreCategorySection(
+          title: '۳. ابزارآلات و ادوات تخصصی باغبانی',
+          subtitle: 'شامل قیچی‌های شارژی هرس، چسب‌های پیوند محافظ و تیغه‌های تخصصی',
+          badgeColor: const Color(0xFF4527A0),
+          icon: Icons.construction,
+          products: toolList,
         ),
       ],
     );
   }
 
+  Widget _buildStoreCategorySection({
+    required String title,
+    required String subtitle,
+    required Color badgeColor,
+    required IconData icon,
+    required List<ProductDetailItem> products,
+  }) {
+    return ElevatedCardBox(
+      borderRadius: 18,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: badgeColor.withOpacity(0.12), borderRadius: BorderRadius.circular(12)),
+                child: Icon(icon, color: badgeColor, size: 26),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: badgeColor)),
+                    const SizedBox(height: 2),
+                    Text(subtitle, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: 24),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: products.length,
+            separatorBuilder: (context, index) => const Divider(height: 28),
+            itemBuilder: (context, index) {
+              final prod = products[index];
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(prod.title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black87)),
+                      ),
+                      Text(
+                        '${prod.priceTomans.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')} تومان',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: badgeColor),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text('واحد: ${prod.unit}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  const SizedBox(height: 8),
+                  // ۵ خط توضیحات ویژگی‌ها
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(color: const Color(0xFFFBF9F6), borderRadius: BorderRadius.circular(10), border: Border.all(color: const Color(0xFFECE6DC))),
+                    child: Text(prod.description, style: const TextStyle(fontSize: 12, height: 1.6, color: Color(0xFF333333))),
+                  ),
+                  const SizedBox(height: 8),
+                  // بخش تجربه تجربی و ماه مصرف
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(color: const Color(0xFFFFF8E1), borderRadius: BorderRadius.circular(10), border: Border.all(color: const Color(0xFFFFE082))),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.tips_and_updates, size: 18, color: Color(0xFFF57F17)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'توصیه تجربی کاربرد:\n${prod.practicalUsage}',
+                            style: const TextStyle(fontSize: 12, color: Color(0xFF5D4037), height: 1.5, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: badgeColor,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                      ),
+                      icon: const Icon(Icons.add_shopping_cart, size: 18),
+                      label: const Text('افزودن به سبد خرید', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                      onPressed: () => _addToCart(prod),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ==========================================
+  // تب ۳: سبد خرید
+  // ==========================================
   Widget _buildCartView() {
     if (cartItems.isEmpty) {
       return Center(
@@ -1466,7 +1415,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             const SizedBox(height: 16),
             DeepGradientButton(
               onPressed: () => setState(() => currentTabIndex = 1),
-              child: const Text('مشاهده و خرید نهاده‌ها'),
+              child: const Text('مشاهده و خرید نهاده‌ها و ابزارها'),
             )
           ],
         ),
@@ -1488,16 +1437,18 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                 padding: const EdgeInsets.all(12),
                 child: Row(
                   children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: Image.network(item.product.imageUrl, width: 65, height: 65, fit: BoxFit.cover),
+                    Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(color: const Color(0xFFE8F1E7), borderRadius: BorderRadius.circular(10)),
+                      child: Icon(item.product.icon, color: const Color(0xFF2C5134)),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(item.product.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                          Text(item.product.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                           const SizedBox(height: 4),
                           Text('${item.product.priceTomans} تومان', style: const TextStyle(color: Colors.grey, fontSize: 12)),
                         ],
@@ -1588,6 +1539,9 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     );
   }
 
+  // ==========================================
+  // تب ۴: تاریخچه
+  // ==========================================
   Widget _buildAllLandsHistoryView() {
     final activeLands = lands.where((l) => !l.isDeleted).toList();
 
@@ -1648,11 +1602,9 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                             colors: const [Color(0xFF6B4226), Color(0xFF4A2E1A)],
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                             onPressed: () {
-                              final potas = storeProducts.firstWhere((p) => p.targetElement == 'K');
-                              _addToCart(potas);
-                              setState(() => currentTabIndex = 2);
+                              setState(() => currentTabIndex = 1);
                             },
-                            child: const Text('سفارش کود اصلاحی این قطعه (سودوپتاس)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                            child: const Text('مشاهده کودهای اصلاحی در فروشگاه', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                           )
                         ],
                       ),
@@ -1663,6 +1615,157 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           ),
         );
       },
+    );
+  }
+
+  void _openYearlyReport(OrchardLand land) {
+    final landRecs = records.where((r) => r.landId == land.id && r.solarYear == selectedYear).toList();
+    final monthsOrder = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
+    landRecs.sort((a, b) => monthsOrder.indexOf(a.month).compareTo(monthsOrder.indexOf(b.month)));
+
+    MonthlyRecord? lastTestRec;
+    for (var r in landRecs.reversed) {
+      if (r.leafTestDate.isNotEmpty || r.soilTestDate.isNotEmpty) {
+        lastTestRec = r;
+        break;
+      }
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (ctx) => Directionality(
+          textDirection: TextDirection.rtl,
+          child: Scaffold(
+            appBar: AppBar(
+              title: Text('گزارش اقدامات سالانه: ${land.name} ($selectedYear)'),
+              backgroundColor: const Color(0xFF1E3A8A),
+            ),
+            body: SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ElevatedCardBox(
+                    borderRadius: 16,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(land.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E3A8A))),
+                            Text('سال زراعی: $selectedYear', style: const TextStyle(fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text('مساحت: ${land.areaValue} ${land.unit} (${land.standardAreaSquareMeters.toStringAsFixed(0)} متر مربع) | ارقام: ${land.treeVarieties.join('، ')}'),
+                        if (yearlyNotes[selectedYear] != null && yearlyNotes[selectedYear]!.isNotEmpty) ...[
+                          const Divider(height: 16),
+                          Text('یادداشت کلی سال زراعی: ${yearlyNotes[selectedYear]}', style: const TextStyle(color: Color(0xFF6B4226), fontWeight: FontWeight.bold, fontSize: 13)),
+                        ]
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text('اقدامات و فعالیت‌های ثبت‌شده در طول سال:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2C5134))),
+                  const SizedBox(height: 10),
+                  if (landRecs.isEmpty)
+                    _buildEmptyState('هیچ اقدام ماهانه‌ای در سال $selectedYear برای این زمین ثبت نشده است.')
+                  else
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: landRecs.length,
+                      itemBuilder: (context, index) {
+                        final rec = landRecs[index];
+                        return ElevatedCardBox(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(14),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                        decoration: BoxDecoration(color: const Color(0xFF386641), borderRadius: BorderRadius.circular(8)),
+                                        child: Text(rec.month, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Text('${rec.variety} (${rec.treeCount} ${rec.countType})', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                                  Text('${rec.ageGroup} - ${rec.treeAge} ساله', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              if (rec.irrigationDates.isNotEmpty) ...[
+                                Row(
+                                  children: [
+                                    const Text('دوره‌های آبیاری: ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                    Expanded(
+                                      child: Wrap(
+                                        spacing: 6,
+                                        children: rec.irrigationDates.map((d) => Chip(
+                                          label: Text(d, style: const TextStyle(fontSize: 11)),
+                                          backgroundColor: const Color(0xFFE8F1E7),
+                                          padding: EdgeInsets.zero,
+                                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        )).toList(),
+                                      ),
+                                    )
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                              ],
+                              Text(
+                                rec.periodNotes.isNotEmpty
+                                    ? 'اقدامات و مشاهدات: ${rec.periodNotes}'
+                                    : 'هیچ یادداشتی برای این ماه ثبت نشده است.',
+                                style: const TextStyle(fontSize: 13, color: Colors.black87),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  const SizedBox(height: 20),
+                  ElevatedCardBox(
+                    borderRadius: 16,
+                    baseColor: const Color(0xFFFFFBEB),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.biotech, color: Color(0xFFB45309)),
+                            SizedBox(width: 8),
+                            Text('خلاصه آخرین پایش آزمایشگاهی ثبت‌شده', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFFB45309))),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        if (lastTestRec == null)
+                          const Text('هیچ برگه آزمایش برگ یا خاکی در این سال زراعی ثبت نشده است.', style: TextStyle(fontSize: 12, color: Colors.grey))
+                        else ...[
+                          Text('ماه ثبت آزمایش: ${lastTestRec.month} (آزمایش برگ: ${lastTestRec.leafTestDate.isNotEmpty ? lastTestRec.leafTestDate : 'نامشخص'})'),
+                          const SizedBox(height: 4),
+                          Text('بافت خاک: ${lastTestRec.soilType} | Ec خاک: ${lastTestRec.soilElements['Ec'] ?? '-'} | pH خاک: ${lastTestRec.soilElements['pH'] ?? '-'}'),
+                          const SizedBox(height: 4),
+                          Text('Ec آب: ${lastTestRec.waterElements['Ec'] ?? '-'} | TDS آب: ${lastTestRec.waterElements['TDS'] ?? '-'}'),
+                        ]
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -1897,15 +2000,6 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     setState(() => currentTabIndex = 3);
   }
 
-  Widget _buildConsultantView() {
-    return const Padding(
-      padding: EdgeInsets.all(16.0),
-      child: Center(
-        child: Text('کارتابل مشاورین تخصصی باغات پسته', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-      ),
-    );
-  }
-
   Widget _buildEmptyState(String msg) {
     return Center(
       child: Padding(
@@ -1917,7 +2011,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
 }
 
 // ==========================================
-// فرم اقدامات گذشته
+// فرم اقدامات گذشته متصل به ساعت و تقویم هوشمند گوشی
 // ==========================================
 class SelfDeclarationScreen extends StatefulWidget {
   final OrchardLand land;
@@ -1950,20 +2044,26 @@ class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> {
   String ageGroup = 'بارور (بیش از 8 سال)';
   final treeAgeCtrl = TextEditingController(text: '12');
 
-  final leafDateCtrl = TextEditingController(text: '1404/07/15');
+  late TextEditingController leafDateCtrl;
   final Map<String, TextEditingController> leafCtrls = {};
 
   String soilType = 'رسی';
-  final soilDateCtrl = TextEditingController(text: '1404/07/10');
+  late TextEditingController soilDateCtrl;
   final Map<String, TextEditingController> soilCtrls = {};
 
-  final List<String> irrigationDates = <String>['1404/07/04', '1404/07/18'];
+  final List<String> irrigationDates = <String>[];
   final Map<String, TextEditingController> waterCtrls = {};
   final periodNotesCtrl = TextEditingController();
 
   @override
   void initState() {
     super.initState();
+    // دریافت آنی تاریخ امروز شمسی بر اساس ساعت و تقویم گوشی
+    final todayPersian = JalaliDateHelper.getNowPersianDate();
+
+    leafDateCtrl = TextEditingController(text: widget.recordToEdit?.leafTestDate.isNotEmpty == true ? widget.recordToEdit!.leafTestDate : todayPersian);
+    soilDateCtrl = TextEditingController(text: widget.recordToEdit?.soilTestDate.isNotEmpty == true ? widget.recordToEdit!.soilTestDate : todayPersian);
+
     for (var k in ['N', 'P', 'K', 'Ca', 'Mg', 'Na', 'Cl', 'B', 'Cu', 'Zn', 'Fe', 'Mn']) {
       leafCtrls[k] = TextEditingController(text: widget.recordToEdit?.leafElements[k] ?? '1.2');
     }
@@ -1982,11 +2082,10 @@ class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> {
       ageGroup = widget.recordToEdit!.ageGroup;
       countType = widget.recordToEdit!.countType;
       soilType = widget.recordToEdit!.soilType;
-      leafDateCtrl.text = widget.recordToEdit!.leafTestDate;
-      soilDateCtrl.text = widget.recordToEdit!.soilTestDate;
-      irrigationDates.clear();
       irrigationDates.addAll(widget.recordToEdit!.irrigationDates);
       periodNotesCtrl.text = widget.recordToEdit!.periodNotes;
+    } else {
+      irrigationDates.add(todayPersian);
     }
   }
 
@@ -2168,11 +2267,11 @@ class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text('تاریخ آزمایش برگ:', style: TextStyle(fontWeight: FontWeight.bold)),
-                    TextButton.icon(
-                      icon: const Icon(Icons.calendar_month, color: Color(0xFF386641)),
-                      label: Text(leafDateCtrl.text),
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.today, color: Color(0xFF386641), size: 18),
+                      label: Text(leafDateCtrl.text, style: const TextStyle(fontWeight: FontWeight.bold)),
                       onPressed: () async {
-                        final picked = await showPersianDatePickerDialog(context);
+                        final picked = await showModernPersianDatePicker(context, initialDate: leafDateCtrl.text);
                         if (picked != null) setState(() => leafDateCtrl.text = picked);
                       },
                     )
@@ -2229,10 +2328,10 @@ class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: OutlinedButton.icon(
-                        icon: const Icon(Icons.calendar_month, size: 16),
-                        label: Text(soilDateCtrl.text, style: const TextStyle(fontSize: 11)),
+                        icon: const Icon(Icons.today, size: 16),
+                        label: Text(soilDateCtrl.text, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                         onPressed: () async {
-                          final picked = await showPersianDatePickerDialog(context);
+                          final picked = await showModernPersianDatePicker(context, initialDate: soilDateCtrl.text);
                           if (picked != null) setState(() => soilDateCtrl.text = picked);
                         },
                       ),
@@ -2271,7 +2370,7 @@ class _SelfDeclarationScreenState extends State<SelfDeclarationScreen> {
                     DeepGradientButton(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       onPressed: () async {
-                        final pickedDate = await showPersianDatePickerDialog(context);
+                        final pickedDate = await showModernPersianDatePicker(context, initialDate: JalaliDateHelper.getNowPersianDate());
                         if (pickedDate != null && !irrigationDates.contains(pickedDate)) {
                           setState(() => irrigationDates.add(pickedDate));
                         }
