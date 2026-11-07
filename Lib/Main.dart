@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase/supabase.dart';
 import 'core/constants/supabase_config.dart';
 import 'features/lands/screens/lands_list_screen.dart';
 
-void main() async {
+// کلاینت اصلی ارتباط با سرور ابری
+final supabase = SupabaseClient(
+  SupabaseConfig.url,
+  SupabaseConfig.anonKey,
+);
+
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-
-  await Supabase.initialize(
-    url: SupabaseConfig.url,
-    anonKey: SupabaseConfig.anonKey,
-  );
-
   runApp(const PistachioApp());
 }
 
