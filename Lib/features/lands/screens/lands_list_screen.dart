@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../models/land_model.dart';
 import '../../../services/land_service.dart';
+import '../../monthly/screens/monthly_dashboard_screen.dart';
 import 'add_land_screen.dart';
 
 class LandsListScreen extends StatefulWidget {
@@ -88,9 +89,12 @@ class _LandsListScreenState extends State<LandsListScreen> {
                   ),
                   trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                   onTap: () {
-                    import '../../monthly/screens/monthly_dashboard_screen.dart';
-
-                    // در مرحله بعد: باز کردن پرونده اقدامات ماهانه و آزمایش‌های این زمین
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (c) => MonthlyDashboardScreen(land: land),
+                      ),
+                    );
                   },
                 ),
               );
@@ -101,4 +105,3 @@ class _LandsListScreenState extends State<LandsListScreen> {
     );
   }
 }
-
