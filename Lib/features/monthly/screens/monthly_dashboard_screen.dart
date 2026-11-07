@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../models/land_model.dart';
 import '../../../models/monthly_action_model.dart';
 import '../../../services/monthly_action_service.dart';
+import '../../tests/screens/lab_test_screen.dart';
 
 class MonthlyDashboardScreen extends StatefulWidget {
   final LandModel land;
@@ -87,6 +88,20 @@ class _MonthlyDashboardScreenState extends State<MonthlyDashboardScreen> {
       appBar: AppBar(
         title: Text('مدیریت ${widget.land.name}'),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.science),
+            tooltip: 'برگه آزمایشات سالانه',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (c) => LabTestScreen(land: widget.land),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -95,7 +110,6 @@ class _MonthlyDashboardScreenState extends State<MonthlyDashboardScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // انتخاب ماه زراعی
                   DropdownButtonFormField<String>(
                     value: _selectedMonth,
                     decoration: const InputDecoration(
@@ -113,8 +127,6 @@ class _MonthlyDashboardScreenState extends State<MonthlyDashboardScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
-
-                  // ثبت یادداشت اقدامات انجام شده
                   TextField(
                     controller: _actionController,
                     maxLines: 3,
@@ -124,8 +136,6 @@ class _MonthlyDashboardScreenState extends State<MonthlyDashboardScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-
-                  // مشاهدات باغدار
                   TextField(
                     controller: _obsController,
                     maxLines: 3,
@@ -135,8 +145,6 @@ class _MonthlyDashboardScreenState extends State<MonthlyDashboardScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-
-                  // ثبت تاریخ‌های آبیاری طبق مدار آب چاه
                   Row(
                     children: [
                       Expanded(
@@ -178,7 +186,6 @@ class _MonthlyDashboardScreenState extends State<MonthlyDashboardScreen> {
                         .toList(),
                   ),
                   const SizedBox(height: 24),
-
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
@@ -193,4 +200,3 @@ class _MonthlyDashboardScreenState extends State<MonthlyDashboardScreen> {
     );
   }
 }
-
