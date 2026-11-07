@@ -26,7 +26,7 @@ class PistachioApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
         useMaterial3: true,
       ),
-      home: const LandsListScreen(userPhone: '09120000000'),
+      home: LandsListScreen(userPhone: '09120000000'),
     );
   }
 }
