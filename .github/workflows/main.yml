@@ -1,24 +1,22 @@
-name: Build and Release Android APK
+name: Build Debug APK
 
 on:
   push:
     branches: [ "main" ]
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Source Code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Java Environment
-        uses: actions/setup-java@v4
+      - name: Set up Java
+        uses: actions/setup-java@v3
         with:
-          distribution: 'temurin'
+          distribution: 'zulu'
           java-version: '17'
 
       - name: Set up Flutter
@@ -27,32 +25,14 @@ jobs:
           flutter-version: '3.19.6'
           channel: 'stable'
 
-      - name: Assemble Clean Flutter Application
-        run: |
-          flutter create --org com.pistachio.orchard pistachio_app
-          cd pistachio_app
-          
-          # افزودن کتابخانه استاندارد خواندن و نوشتن روی حافظه گوشی
-          flutter pub add path_provider
-          
-          TARGET_FILE=$(find .. -maxdepth 3 -iname "main.dart" -not -path "*/pistachio_app/*" | head -n 1)
-          if [ -n "$TARGET_FILE" ]; then
-            echo "Found main.dart at: $TARGET_FILE"
-            cp "$TARGET_FILE" lib/main.dart
-          else
-            echo "ERROR: main.dart not found in repository!"
-            exit 1
-          fi
-          
-          flutter build apk --debug
-          cp build/app/outputs/flutter-apk/app-debug.apk ../PistachioOrchardApp.apk
+      - name: Install dependencies
+        run: flutter pub get
 
-      - name: Publish Direct Download Release
-        uses: softprops/action-gh-release@v1
+      - name: Build APK
+        run: flutter build apk --debug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: release-${{ github.run_number }}
-          name: "نسخه نهایی با ذخیره‌سازی دائمی واقعی (بیلد ${{ github.run_number }})"
-          body: "فایل APK تست‌شده همراه با سیستم ذخیره فایل فیزیکی در حافظه دائمی گوشی"
-          files: PistachioOrchardApp.apk
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: app-debug
+          path: build/app/outputs/flutter-apk/app-debug.apk
