@@ -23,10 +23,9 @@ class PistachioApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'مدیریت باغ پسته',
       theme: ThemeData(
-        primarySwatch: Colors.green,
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
         useMaterial3: true,
       ),
-      // شماره پیش‌فرض باغدار برای تفکیک اطلاعات در سرور ابری
       home: const LandsListScreen(userPhone: '09120000000'),
     );
   }
