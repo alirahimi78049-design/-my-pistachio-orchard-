@@ -383,7 +383,7 @@ class _LabTestScreenState extends State<LabTestScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('نتایج آزمایشات: $landName')),
+      appBar: AppBar(title: Text('نتایج آزمایشات: ${widget.landName}')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
