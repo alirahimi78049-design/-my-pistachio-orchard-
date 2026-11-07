@@ -1,11 +1,10 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase/supabase.dart';
 import '../models/land_model.dart';
+import '../main.dart';
 
 class LandService {
-  final SupabaseClient _client = Supabase.instance.client;
-
   Future<List<LandModel>> getLands(String userPhone) async {
-    final response = await _client
+    final response = await supabase
         .from('lands')
         .select()
         .eq('user_phone', userPhone)
@@ -15,7 +14,7 @@ class LandService {
   }
 
   Future<LandModel> insertLand(LandModel land) async {
-    final response = await _client
+    final response = await supabase
         .from('lands')
         .insert(land.toJson())
         .select()
@@ -24,4 +23,3 @@ class LandService {
     return LandModel.fromJson(response);
   }
 }
-
