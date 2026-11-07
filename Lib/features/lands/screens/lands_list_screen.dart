@@ -88,6 +88,8 @@ class _LandsListScreenState extends State<LandsListScreen> {
                   ),
                   trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                   onTap: () {
+                    import '../../monthly/screens/monthly_dashboard_screen.dart';
+
                     // در مرحله بعد: باز کردن پرونده اقدامات ماهانه و آزمایش‌های این زمین
                   },
                 ),
