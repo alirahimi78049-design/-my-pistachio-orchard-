@@ -1,114 +1,31 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shamsi_date/shamsi_date.dart';
 
-// ==================== موتور کامل و نامحدود تقویم شمسی ====================
-class JalaliDate {
-  final int year;
-  final int month;
-  final int day;
+// ==================== موتور و ویجت تقویم شمسی نامحدود ====================
+Future<String?> showJalaliDatePicker(BuildContext context, {int? initialYear}) async {
+  final now = Jalali.now();
+  int selectedYear = initialYear ?? now.year;
+  int selectedMonth = now.month;
+  int selectedDay = now.day;
 
-  JalaliDate(this.year, this.month, this.day);
-
-  static JalaliDate now() {
-    return fromDateTime(DateTime.now());
-  }
-
-  static JalaliDate fromDateTime(DateTime date) {
-    int gYear = date.year;
-    int gMonth = date.month;
-    int gDay = date.day;
-
-    List<int> gDaysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-    if ((gYear % 4 == 0 && gYear % 100 != 0) || (gYear % 400 == 0)) {
-      gDaysInMonth[1] = 29;
-    }
-
-    int gy = gYear - 1600;
-    int gm = gMonth - 1;
-    int gd = gDay - 1;
-
-    int gDayNo = 365 * gy + ((gy + 3) ~/ 4) - ((gy + 99) ~/ 100) + ((gy + 399) ~/ 400);
-    for (int i = 0; i < gm; ++i) {
-      gDayNo += gDaysInMonth[i];
-    }
-    gDayNo += gd;
-
-    int jDayNo = gDayNo - 79;
-    int jNp = jDayNo ~/ 12053;
-    jDayNo %= 12053;
-
-    int jy = 979 + 33 * jNp + 4 * (jDayNo ~/ 1461);
-    jDayNo %= 1461;
-
-    if (jDayNo >= 366) {
-      jy += (jDayNo - 1) ~/ 365;
-      jDayNo = (jDayNo - 1) % 365;
-    }
-
-    int jm;
-    int jd;
-    if (jDayNo < 186) {
-      jm = 1 + (jDayNo ~/ 31);
-      jd = 1 + (jDayNo % 31);
-    } else {
-      jm = 7 + ((jDayNo - 186) ~/ 30);
-      jd = 1 + ((jDayNo - 186) % 30);
-    }
-
-    return JalaliDate(jy, jm, jd);
-  }
-
-  // اضافه کردن تعداد روز به تاریخ شمسی
-  JalaliDate addDays(int daysToAdd) {
-    int y = year;
-    int m = month;
-    int d = day + daysToAdd;
-
-    while (true) {
-      int daysInCurrentMonth = (m <= 6) ? 31 : (m <= 11 ? 30 : 29);
-      if (d <= daysInCurrentMonth) {
-        break;
-      }
-      d -= daysInCurrentMonth;
-      m++;
-      if (m > 12) {
-        m = 1;
-        y++;
-      }
-    }
-    return JalaliDate(y, m, d);
-  }
-
-  String format() {
-    String m = month < 10 ? '0$month' : '$month';
-    String d = day < 10 ? '0$day' : '$day';
-    return '$year/$m/$d';
-  }
-
-  static const List<String> monthNames = [
+  final monthNames = [
     'فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور',
     'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'
   ];
-}
-
-// انتخاب‌گر تقویم شمسی نامحدود
-Future<String?> showJalaliDatePicker(BuildContext context, {int? initialYear}) async {
-  JalaliDate current = JalaliDate.now();
-  int selectedYear = initialYear ?? current.year;
-  int selectedMonth = current.month;
-  int selectedDay = current.day;
 
   return showDialog<String>(
     context: context,
     builder: (context) {
       return StatefulBuilder(
         builder: (context, setDialogState) {
-          int maxDays = selectedMonth <= 6 ? 31 : (selectedMonth <= 11 ? 30 : 29);
+          final tempDate = Jalali(selectedYear, selectedMonth);
+          int maxDays = tempDate.monthLength;
           if (selectedDay > maxDays) selectedDay = maxDays;
 
           return AlertDialog(
-            title: const Text('انتخاب تاریخ تقویم شمسی', textAlign: TextAlign.center, style: TextStyle(fontSize: 16)),
+            title: const Text('انتخاب تاریخ در تقویم شمسی', textAlign: TextAlign.center, style: TextStyle(fontSize: 16)),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -127,7 +44,7 @@ Future<String?> showJalaliDatePicker(BuildContext context, {int? initialYear}) a
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
@@ -143,7 +60,7 @@ Future<String?> showJalaliDatePicker(BuildContext context, {int? initialYear}) a
                         items: List.generate(12, (i) => i + 1)
                             .map((m) => DropdownMenuItem(
                                   value: m,
-                                  child: Text(JalaliDate.monthNames[m - 1]),
+                                  child: Text(monthNames[m - 1]),
                                 ))
                             .toList(),
                         onChanged: (v) => setDialogState(() => selectedMonth = v!),
@@ -157,9 +74,12 @@ Future<String?> showJalaliDatePicker(BuildContext context, {int? initialYear}) a
               TextButton(onPressed: () => Navigator.pop(context, null), child: const Text('انصراف')),
               ElevatedButton(
                 onPressed: () {
-                  Navigator.pop(context, JalaliDate(selectedYear, selectedMonth, selectedDay).format());
+                  final j = Jalali(selectedYear, selectedMonth, selectedDay);
+                  String m = j.month < 10 ? '0${j.month}' : '${j.month}';
+                  String d = j.day < 10 ? '0${j.day}' : '${j.day}';
+                  Navigator.pop(context, '${j.year}/$m/$d');
                 },
-                child: const Text('تأیید تاریخ'),
+                child: const Text('تأیید'),
               ),
             ],
           );
@@ -169,7 +89,7 @@ Future<String?> showJalaliDatePicker(BuildContext context, {int? initialYear}) a
   );
 }
 
-// ==================== بدنه اصلی برنامه ====================
+// ==================== اجرای اصلی برنامه ====================
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
@@ -207,7 +127,7 @@ class PistachioApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'مدیریت باغ پسته',
+      title: 'مدیریت باغات پسته',
       theme: ThemeData(
         useMaterial3: true,
         colorSchemeSeed: const Color(0xFF1B5E20),
@@ -225,7 +145,7 @@ class PistachioApp extends StatelessWidget {
   }
 }
 
-// ==================== صفحه ۱: ثبت نام ====================
+// ==================== صفحه ثبت نام / ورود ====================
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -278,7 +198,7 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 12),
               const Text('سامانه هوشمند باغ پسته', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
               const SizedBox(height: 24),
-              TextField(controller: _name, textAlign: TextAlign.right, decoration: const InputDecoration(labelText: 'نام باغدار', border: OutlineInputBorder())),
+              TextField(controller: _name, textAlign: TextAlign.right, decoration: const InputDecoration(labelText: 'نام و نام خانوادگی باغدار', border: OutlineInputBorder())),
               const SizedBox(height: 12),
               TextField(controller: _phone, keyboardType: TextInputType.phone, textAlign: TextAlign.right, decoration: const InputDecoration(labelText: 'شماره تماس', border: OutlineInputBorder())),
               const SizedBox(height: 12),
@@ -297,7 +217,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   minimumSize: const Size(double.infinity, 50),
                 ),
                 onPressed: _submit,
-                child: const Text('ورود به برنامه'),
+                child: const Text('ورود به سامانه'),
               )
             ],
           ),
@@ -307,7 +227,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
-// مدل زمین
+// ==================== مدل قطعه زمین ====================
 class LandItem {
   final String id;
   final String name;
@@ -344,7 +264,7 @@ class LandItem {
       );
 }
 
-// ==================== صفحه اول: لیست قطعات + دکمه گزارش کل سالانه ====================
+// ==================== صفحه اول: لیست قطعات و گزارش سالیانه باغات ====================
 class HomeScreen extends StatefulWidget {
   final String userName;
   final String userPhone;
@@ -396,7 +316,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             const CircleAvatar(
               backgroundColor: Color(0xFFE8F5E9),
-              child: Icon(Icons.park, color: Color(0xFF1B5E20), size: 26),
+              child: Icon(Icons.park, color: Color(0xFF1B5E20), size: 24),
             ),
             const SizedBox(width: 10),
             Column(
@@ -427,7 +347,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: Column(
         children: [
-          // گزارش‌گیری سالیانه در صفحه اول
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             child: Card(
@@ -439,7 +358,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: ListTile(
                 leading: Icon(Icons.analytics, color: Colors.amber.shade900, size: 30),
                 title: const Text('گزارش‌گیری جامع سالیانه باغات', style: TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: const Text('مشاهده مقایسه تناژ، آبیاری‌ها و آزمایشات هر سال'),
+                subtitle: const Text('مقایسه عملکرد، تناژ و آزمایشات هر سال'),
                 trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                 onTap: () {
                   if (_lands.isEmpty) {
@@ -458,7 +377,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           Expanded(
             child: _lands.isEmpty
-                ? const Center(child: Text('قطعه زمینی ثبت نشده است. از دکمه پایین ثبت کنید.'))
+                ? const Center(child: Text('هنوز قطعه زمینی ثبت نشده است'))
                 : ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     itemCount: _lands.length,
@@ -491,7 +410,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// ==================== صفحه ۲: هاب قطعه ====================
+// ==================== صفحه هاب قطعه زمین ====================
 class LandHubScreen extends StatelessWidget {
   final LandItem land;
   const LandHubScreen({super.key, required this.land});
@@ -503,41 +422,41 @@ class LandHubScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _cardItem(
+          _menuItem(
             context,
             icon: Icons.calendar_month,
             title: 'پرونده اقدامات ماهانه و تقویم آبیاری',
-            sub: 'محاسبه خودکار نوبت‌های آبیاری و تقویم شمسی نامحدود',
+            sub: 'محاسبه خودکار دوره‌ها بر مدار چاه با تقویم شمسی',
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (c) => MonthlyActionsScreen(land: land)),
             ),
           ),
-          _cardItem(
+          _menuItem(
             context,
             icon: Icons.scale,
             title: 'ثبت تناژ و میزان محصول سالانه',
-            sub: 'ثبت وزن پسته تر و خشک برحسب کیلوگرم برای هر سال',
+            sub: 'پسته تر، خشک، درصد پوکی و محاسبه عملکرد هر درخت',
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (c) => YieldRecordScreen(land: land)),
             ),
           ),
-          _cardItem(
+          _menuItem(
             context,
             icon: Icons.science,
             title: 'آزمایشات آب، خاک و برگ',
-            sub: 'یک پرونده متمرکز آزمایش خاک، آب و برگ برای هر سال',
+            sub: 'ثبت یک پرونده آزمایشی برای هر سال زراعی',
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (c) => LabTestsScreen(land: land)),
             ),
           ),
-          _cardItem(
+          _menuItem(
             context,
             icon: Icons.analytics,
-            title: 'گزارش‌گیری سالیانه این قطعه',
-            sub: 'بررسی سال‌های قبل و مقایسه عملکرد',
+            title: 'گزارش‌گیری جامع سالیانه این قطعه',
+            sub: 'مشاهده پرونده کامل و مقایسه عملکرد زراعی',
             color: Colors.amber.shade900,
             onTap: () => Navigator.push(
               context,
@@ -549,7 +468,7 @@ class LandHubScreen extends StatelessWidget {
     );
   }
 
-  Widget _cardItem(BuildContext context,
+  Widget _menuItem(BuildContext context,
       {required IconData icon, required String title, required String sub, required VoidCallback onTap, Color? color}) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -571,7 +490,7 @@ class LandHubScreen extends StatelessWidget {
   }
 }
 
-// ==================== صفحه ۳: اقدامات ماهانه + آبیاری خودکار تقویم ====================
+// ==================== صفحه اقدامات ماهانه + تقویم آبیاری هوشمند ====================
 class MonthlyActionsScreen extends StatefulWidget {
   final LandItem land;
   const MonthlyActionsScreen({super.key, required this.land});
@@ -581,13 +500,16 @@ class MonthlyActionsScreen extends StatefulWidget {
 }
 
 class _MonthlyActionsScreenState extends State<MonthlyActionsScreen> {
-  int _selectedYear = 1403;
+  int _selectedYear = Jalali.now().year;
   String _selectedMonth = 'فروردین';
   final _actions = TextEditingController();
   final _observations = TextEditingController();
   List<String> _irrigations = [];
 
-  final List<String> _months = JalaliDate.monthNames;
+  final List<String> _months = const [
+    'فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور',
+    'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'
+  ];
 
   @override
   void initState() {
@@ -622,25 +544,25 @@ class _MonthlyActionsScreenState extends State<MonthlyActionsScreen> {
     };
     await prefs.setString(_key, jsonEncode(data));
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('پرونده ذخیره گردید')));
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('پرونده ماه ذخیره شد')));
   }
 
-  // محاسبه خودکار نوبت‌های آبیاری تا آخر سال زراعی
   void _generateIrrigations(String startDateStr) {
     List<String> parts = startDateStr.split('/');
     int y = int.parse(parts[0]);
     int m = int.parse(parts[1]);
     int d = int.parse(parts[2]);
 
-    JalaliDate current = JalaliDate(y, m, d);
+    Jalali current = Jalali(y, m, d);
     int interval = widget.land.irrigationInterval;
     if (interval <= 0) interval = 13;
 
     List<String> generated = [];
-    // محاسبه نوبت‌ها تا انتهای همان سال زراعی
     while (current.year == y) {
-      generated.add(current.format());
-      current = current.addDays(interval);
+      String mStr = current.month < 10 ? '0${current.month}' : '${current.month}';
+      String dStr = current.day < 10 ? '0${current.day}' : '${current.day}';
+      generated.add('${current.year}/$mStr/$dStr');
+      current = current + interval;
     }
 
     setState(() {
@@ -655,7 +577,7 @@ class _MonthlyActionsScreenState extends State<MonthlyActionsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('اقدامات ماهانه: ${widget.land.name}')),
+      appBar: AppBar(title: Text('اقدامات: ${widget.land.name}')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -702,7 +624,7 @@ class _MonthlyActionsScreenState extends State<MonthlyActionsScreen> {
               maxLines: 3,
               textAlign: TextAlign.right,
               decoration: const InputDecoration(
-                labelText: 'عملیات زراعی انجام‌شده (کود، سم، هرس، محلول‌پاشی)',
+                labelText: 'عملیات زراعی (کود، سم، هرس، محلول‌پاشی)',
                 border: OutlineInputBorder(),
               ),
             ),
@@ -712,13 +634,11 @@ class _MonthlyActionsScreenState extends State<MonthlyActionsScreen> {
               maxLines: 2,
               textAlign: TextAlign.right,
               decoration: const InputDecoration(
-                labelText: 'مشاهدات میدانی (وضعیت رشد، پسیل، خندانی)',
+                labelText: 'مشاهدات میدانی درختان',
                 border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 14),
-
-            // بخش تقویم آبیاری و تولید خودکار
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(12),
@@ -754,7 +674,7 @@ class _MonthlyActionsScreenState extends State<MonthlyActionsScreen> {
                             if (firstDate != null) {
                               _generateIrrigations(firstDate);
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('نوبت‌های آبیاری تا آخر سال خودکار اضافه شدند')),
+                                const SnackBar(content: Text('نوبت‌های مدار آبیاری تا آخر سال خودکار افزوده شدند')),
                               );
                             }
                           },
@@ -796,7 +716,7 @@ class _MonthlyActionsScreenState extends State<MonthlyActionsScreen> {
   }
 }
 
-// ==================== صفحه ۴: ثبت تناژ محصول (کیلوگرم) ====================
+// ==================== صفحه ثبت تناژ و عملکرد درخت ====================
 class YieldRecordScreen extends StatefulWidget {
   final LandItem land;
   const YieldRecordScreen({super.key, required this.land});
@@ -806,9 +726,11 @@ class YieldRecordScreen extends StatefulWidget {
 }
 
 class _YieldRecordScreenState extends State<YieldRecordScreen> {
-  int _selectedYear = 1403;
+  int _selectedYear = Jalali.now().year;
+  final _treesCount = TextEditingController();
   final _wetYield = TextEditingController();
   final _dryYield = TextEditingController();
+  final _hollowPercent = TextEditingController();
   final _notes = TextEditingController();
 
   @override
@@ -824,12 +746,16 @@ class _YieldRecordScreenState extends State<YieldRecordScreen> {
     final raw = prefs.getString(_key);
     if (raw != null) {
       final map = jsonDecode(raw);
+      _treesCount.text = map['trees'] ?? '';
       _wetYield.text = map['wet'] ?? '';
       _dryYield.text = map['dry'] ?? '';
+      _hollowPercent.text = map['hollow'] ?? '';
       _notes.text = map['notes'] ?? '';
     } else {
+      _treesCount.clear();
       _wetYield.clear();
       _dryYield.clear();
+      _hollowPercent.clear();
       _notes.clear();
     }
     setState(() {});
@@ -838,19 +764,25 @@ class _YieldRecordScreenState extends State<YieldRecordScreen> {
   Future<void> _saveYield() async {
     final prefs = await SharedPreferences.getInstance();
     final data = {
+      'trees': _treesCount.text.trim(),
       'wet': _wetYield.text.trim(),
       'dry': _dryYield.text.trim(),
+      'hollow': _hollowPercent.text.trim(),
       'notes': _notes.text.trim(),
     };
     await prefs.setString(_key, jsonEncode(data));
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تناژ محصول این سال ذخیره شد')));
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تناژ و عملکرد محصول ذخیره شد')));
   }
 
   @override
   Widget build(BuildContext context) {
+    double dry = double.tryParse(_dryYield.text) ?? 0;
+    int trees = int.tryParse(_treesCount.text) ?? 0;
+    double yieldPerTree = (trees > 0 && dry > 0) ? (dry / trees) : 0;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('ثبت میزان محصول سالانه')),
+      appBar: AppBar(title: const Text('ثبت محصول و عملکرد سالانه')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -865,7 +797,7 @@ class _YieldRecordScreenState extends State<YieldRecordScreen> {
                     _loadYield();
                   },
                 ),
-                Text('سال زراعی برداشت: $_selectedYear', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                Text('سال برداشت: $_selectedYear', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 IconButton(
                   icon: const Icon(Icons.add_circle_outline),
                   onPressed: () {
@@ -877,24 +809,55 @@ class _YieldRecordScreenState extends State<YieldRecordScreen> {
             ),
             const SizedBox(height: 16),
             TextField(
+              controller: _treesCount,
+              keyboardType: TextInputType.number,
+              textAlign: TextAlign.right,
+              decoration: const InputDecoration(labelText: 'تعداد درختان بارده مبنا', suffixText: 'اصل', border: OutlineInputBorder()),
+              onChanged: (v) => setState(() {}),
+            ),
+            const SizedBox(height: 12),
+            TextField(
               controller: _wetYield,
               keyboardType: TextInputType.number,
               textAlign: TextAlign.right,
               decoration: const InputDecoration(labelText: 'وزن پسته تر (کیلوگرم)', suffixText: 'کیلوگرم', border: OutlineInputBorder()),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             TextField(
               controller: _dryYield,
               keyboardType: TextInputType.number,
               textAlign: TextAlign.right,
               decoration: const InputDecoration(labelText: 'وزن پسته خشک نهایی (کیلوگرم)', suffixText: 'کیلوگرم', border: OutlineInputBorder()),
+              onChanged: (v) => setState(() {}),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _hollowPercent,
+              keyboardType: TextInputType.number,
+              textAlign: TextAlign.right,
+              decoration: const InputDecoration(labelText: 'درصد پوکی پسته', suffixText: '%', border: OutlineInputBorder()),
+            ),
+            const SizedBox(height: 12),
+            if (yieldPerTree > 0)
+              Card(
+                color: Colors.green.shade50,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('میانگین باردهی هر درخت:'),
+                      Text('${yieldPerTree.toStringAsFixed(2)} کیلوگرم خشک', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+              ),
+            const SizedBox(height: 12),
             TextField(
               controller: _notes,
               maxLines: 2,
               textAlign: TextAlign.right,
-              decoration: const InputDecoration(labelText: 'توضیحات (انس، درصد پوکی، خندانی)', border: OutlineInputBorder()),
+              decoration: const InputDecoration(labelText: 'توضیحات (انس پسته، سال باردهی اون/آف)', border: OutlineInputBorder()),
             ),
             const SizedBox(height: 24),
             ElevatedButton(
@@ -904,7 +867,7 @@ class _YieldRecordScreenState extends State<YieldRecordScreen> {
                 minimumSize: const Size(double.infinity, 50),
               ),
               onPressed: _saveYield,
-              child: const Text('ذخیره تناژ این سال'),
+              child: const Text('ثبت و ذخیره عملکرد'),
             ),
           ],
         ),
@@ -913,7 +876,7 @@ class _YieldRecordScreenState extends State<YieldRecordScreen> {
   }
 }
 
-// ==================== صفحه ۵: آزمایشات آب، خاک و برگ (تک‌آزمایش سالانه) ====================
+// ==================== صفحه آزمایشات آب، خاک و برگ (متمرکز سالانه) ====================
 class LabTestsScreen extends StatefulWidget {
   final LandItem land;
   const LabTestsScreen({super.key, required this.land});
@@ -923,7 +886,7 @@ class LabTestsScreen extends StatefulWidget {
 }
 
 class _LabTestsScreenState extends State<LabTestsScreen> {
-  int _selectedYear = 1403;
+  int _selectedYear = Jalali.now().year;
   final _soilEc = TextEditingController();
   final _soilPh = TextEditingController();
   final _waterEc = TextEditingController();
@@ -965,7 +928,7 @@ class _LabTestsScreenState extends State<LabTestsScreen> {
     };
     await prefs.setString(_key, jsonEncode(data));
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('آزمایشات این سال زراعی ثبت گردید')));
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('آزمایشات این سال زراعی ذخیره گردید')));
   }
 
   @override
@@ -1012,7 +975,7 @@ class _LabTestsScreenState extends State<LabTestsScreen> {
                 minimumSize: const Size(double.infinity, 50),
               ),
               onPressed: _saveLab,
-              child: const Text('ذخیره آزمایش این سال'),
+              child: const Text('ذخیره آزمایشات سال'),
             ),
           ],
         ),
@@ -1021,7 +984,7 @@ class _LabTestsScreenState extends State<LabTestsScreen> {
   }
 }
 
-// ==================== صفحه ۶: گزارش سالیانه تک‌قطعه ====================
+// ==================== صفحه گزارش سالیانه تک‌قطعه ====================
 class AnnualReportScreen extends StatefulWidget {
   final LandItem land;
   const AnnualReportScreen({super.key, required this.land});
@@ -1031,11 +994,16 @@ class AnnualReportScreen extends StatefulWidget {
 }
 
 class _AnnualReportScreenState extends State<AnnualReportScreen> {
-  int _selectedYear = 1403;
+  int _selectedYear = Jalali.now().year;
   Map<String, dynamic>? _yieldData;
   Map<String, dynamic>? _labData;
   Map<String, Map<String, dynamic>> _monthlyActions = {};
   bool _loading = false;
+
+  final List<String> _months = const [
+    'فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور',
+    'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'
+  ];
 
   @override
   void initState() {
@@ -1054,7 +1022,7 @@ class _AnnualReportScreenState extends State<AnnualReportScreen> {
     _labData = labRaw != null ? jsonDecode(labRaw) : null;
 
     _monthlyActions.clear();
-    for (String m in JalaliDate.monthNames) {
+    for (String m in _months) {
       final mRaw = prefs.getString('actions_${widget.land.id}_${_selectedYear}_$m');
       if (mRaw != null) {
         _monthlyActions[m] = jsonDecode(mRaw);
@@ -1104,8 +1072,10 @@ class _AnnualReportScreenState extends State<AnnualReportScreen> {
                         children: [
                           const Text('میزان تناژ و محصول ثبت‌شده', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                           const Divider(),
+                          Text('• درختان بارده: ${_yieldData?['trees'] ?? "ثبت نشده"} اصل'),
                           Text('• پسته تر: ${_yieldData?['wet'] ?? "ثبت نشده"} کیلوگرم'),
                           Text('• پسته خشک: ${_yieldData?['dry'] ?? "ثبت نشده"} کیلوگرم'),
+                          Text('• درصد پوکی: ${_yieldData?['hollow'] ?? "-"} %'),
                           Text('• نکات: ${_yieldData?['notes'] ?? "ندارد"}'),
                         ],
                       ),
@@ -1122,7 +1092,7 @@ class _AnnualReportScreenState extends State<AnnualReportScreen> {
                           const Text('آزمایشات خاک، آب و برگ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                           const Divider(),
                           Text('• EC خاک: ${_labData?['soilEc'] ?? "-"} | pH خاک: ${_labData?['soilPh'] ?? "-"}'),
-                          Text('• EC آب: ${_labData?['waterEc'] ?? "-"}'),
+                          Text('• EC آب چاه: ${_labData?['waterEc'] ?? "-"}'),
                           Text('• پتاسیم برگ (K): ${_labData?['leafK'] ?? "-"} %'),
                         ],
                       ),
@@ -1167,7 +1137,7 @@ class _AnnualReportScreenState extends State<AnnualReportScreen> {
   }
 }
 
-// ==================== صفحه ۷: گزارش‌گیری کل باغات در صفحه اول ====================
+// ==================== صفحه گزارش کل باغات در صفحه اول ====================
 class GlobalAnnualReportScreen extends StatefulWidget {
   final List<LandItem> lands;
   const GlobalAnnualReportScreen({super.key, required this.lands});
@@ -1177,7 +1147,7 @@ class GlobalAnnualReportScreen extends StatefulWidget {
 }
 
 class _GlobalAnnualReportScreenState extends State<GlobalAnnualReportScreen> {
-  int _selectedYear = 1403;
+  int _selectedYear = Jalali.now().year;
   Map<String, Map<String, dynamic>> _allYields = {};
   bool _loading = false;
 
@@ -1245,6 +1215,7 @@ class _GlobalAnnualReportScreenState extends State<GlobalAnnualReportScreen> {
                           const Divider(),
                           Text('• پسته تر: ${y?['wet'] ?? "ثبت نشده"} کیلوگرم'),
                           Text('• پسته خشک: ${y?['dry'] ?? "ثبت نشده"} کیلوگرم'),
+                          Text('• درصد پوکی: ${y?['hollow'] ?? "-"} %'),
                           Text('• نکات: ${y?['notes'] ?? "ندارد"}'),
                         ],
                       ),
@@ -1257,7 +1228,7 @@ class _GlobalAnnualReportScreenState extends State<GlobalAnnualReportScreen> {
   }
 }
 
-// ==================== صفحه ۸: افزودن قطعه زمین ====================
+// ==================== صفحه افزودن قطعه زمین ====================
 class AddLandScreen extends StatefulWidget {
   const AddLandScreen({super.key});
 
