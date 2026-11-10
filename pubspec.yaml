@@ -1,5 +1,5 @@
 name: pistachio_app
-description: "Pistachio Orchard Management Application"
+description: "My Pistachio Orchard Management App"
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -10,6 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
   shared_preferences: ^2.2.3
+  shamsi_date: ^1.0.1
 
 dev_dependencies:
   flutter_test:
