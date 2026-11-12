@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 import 'package:shamsi_date/shamsi_date.dart';
 import '../calendar/jalali_helper.dart';
 import 'local_database.dart';
+
+typedef RecordMap = Map<String, dynamic>;
 
 class OrchardRepository {
   static final OrchardRepository instance = OrchardRepository._init();
@@ -11,7 +14,7 @@ class OrchardRepository {
   OrchardRepository._init();
 
   // ==================== ۱. مدیریت قطعات زمین ====================
-  Future<List>> getLands() async {
+  Future<List<RecordMap>> getLands() async {
     final db = await LocalDatabase.instance.database;
     return await db.query(
       'lands',
@@ -44,7 +47,6 @@ class OrchardRepository {
 
   Future<void> deleteLand(String id) async {
     final db = await LocalDatabase.instance.database;
-    // حذف نرم (Soft Delete)
     await db.update(
       'lands',
       {
@@ -58,7 +60,7 @@ class OrchardRepository {
   }
 
   // ==================== ۲. گزارش‌های ماهانه ====================
-  Future?> getMonthlyReport(
+  Future<RecordMap?> getMonthlyReport(
       String landId, int year, int month) async {
     final db = await LocalDatabase.instance.database;
     final res = await db.query(
@@ -107,8 +109,7 @@ class OrchardRepository {
   }
 
   // ==================== ۳. آبیاری (تفکیک برنامه و واقعیت) ====================
-  Future<List>> getIrrigationPlans(
-      String landId, int year) async {
+  Future<List<RecordMap>> getIrrigationPlans(String landId, int year) async {
     final db = await LocalDatabase.instance.database;
     return await db.query(
       'irrigation_plans',
@@ -159,8 +160,7 @@ class OrchardRepository {
     await db.delete('irrigation_plans', where: 'id = ?', whereArgs: [id]);
   }
 
-  Future<List>> getActualIrrigations(
-      String landId, int year) async {
+  Future<List<RecordMap>> getActualIrrigations(String landId, int year) async {
     final db = await LocalDatabase.instance.database;
     return await db.query(
       'irrigation_events',
@@ -203,7 +203,7 @@ class OrchardRepository {
   }
 
   // ==================== ۴. ثبت تناژ و عملکرد محصول ====================
-  Future?> getYieldRecord(String landId, int year) async {
+  Future<RecordMap?> getYieldRecord(String landId, int year) async {
     final db = await LocalDatabase.instance.database;
     final res = await db.query(
       'yield_records',
@@ -249,7 +249,7 @@ class OrchardRepository {
   }
 
   // ==================== ۵. آزمایشات آب، خاک و برگ ====================
-  Future?> getLabTest(String landId, int year) async {
+  Future<RecordMap?> getLabTest(String landId, int year) async {
     final db = await LocalDatabase.instance.database;
     final res = await db.query(
       'lab_tests',
@@ -296,7 +296,7 @@ class OrchardRepository {
   }
 
   // ==================== ۶. گزارش‌گیری تجمیعی سالانه ====================
-  Future> getAnnualSummary(String landId, int year) async {
+  Future<RecordMap> getAnnualSummary(String landId, int year) async {
     final db = await LocalDatabase.instance.database;
     final yieldData = await getYieldRecord(landId, year);
     final labData = await getLabTest(landId, year);
@@ -319,7 +319,6 @@ class OrchardRepository {
     };
   }
 
-  // تعداد رکوردهای در انتظار همگام‌سازی ابری
   Future<int> getPendingSyncCount() async {
     final db = await LocalDatabase.instance.database;
     int total = 0;
@@ -338,4 +337,3 @@ class OrchardRepository {
     return total;
   }
 }
-
