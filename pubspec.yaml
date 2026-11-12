@@ -11,6 +11,9 @@ dependencies:
     sdk: flutter
   shared_preferences: ^2.2.3
   shamsi_date: ^1.0.1
+  sqflite: ^2.3.3
+  path: ^1.9.0
+  uuid: ^4.4.0
 
 dev_dependencies:
   flutter_test:
