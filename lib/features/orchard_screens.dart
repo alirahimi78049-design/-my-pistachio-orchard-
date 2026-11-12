@@ -140,7 +140,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  List> _lands = [];
+  List<RecordMap> _lands = [];
   int _pendingSync = 0;
   bool _loading = true;
 
@@ -298,7 +298,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
 // ==================== ۳. صفحه هاب قطعه زمین ====================
 class LandHubScreen extends StatelessWidget {
-  final Map<String, dynamic> land;
+  final RecordMap land;
   const LandHubScreen({super.key, required this.land});
 
   @override
@@ -404,9 +404,9 @@ class LandHubScreen extends StatelessWidget {
   }
 }
 
-// ==================== ۴. صفحه مدیریت آبیاری (تفکیک برنامه و واقعیت) ====================
+// ==================== ۴. صفحه مدیریت آبیاری ====================
 class IrrigationScreen extends StatefulWidget {
-  final Map<String, dynamic> land;
+  final RecordMap land;
   const IrrigationScreen({super.key, required this.land});
 
   @override
@@ -415,8 +415,8 @@ class IrrigationScreen extends StatefulWidget {
 
 class _IrrigationScreenState extends State<IrrigationScreen> {
   int _selectedYear = Jalali.now().year;
-  List> _plans = [];
-  List> _actuals = [];
+  List<RecordMap> _plans = [];
+  List<RecordMap> _actuals = [];
 
   @override
   void initState() {
@@ -475,8 +475,6 @@ class _IrrigationScreenState extends State<IrrigationScreen> {
                     ],
                   ),
                   const SizedBox(height: 12),
-
-                  // بخش اول: برنامه پیش‌بینی‌شده خودکار
                   Card(
                     color: Colors.blue.shade50,
                     child: Padding(
@@ -559,10 +557,7 @@ class _IrrigationScreenState extends State<IrrigationScreen> {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 16),
-
-                  // بخش دوم: آبیاری‌های واقعی انجام‌شده
                   Card(
                     color: Colors.green.shade50,
                     child: Padding(
@@ -638,7 +633,7 @@ class _IrrigationScreenState extends State<IrrigationScreen> {
 
 // ==================== ۵. صفحه اقدامات ماهانه ====================
 class MonthlyActionsScreen extends StatefulWidget {
-  final Map<String, dynamic> land;
+  final RecordMap land;
   const MonthlyActionsScreen({super.key, required this.land});
 
   @override
@@ -789,7 +784,7 @@ class _MonthlyActionsScreenState extends State<MonthlyActionsScreen> {
 
 // ==================== ۶. صفحه ثبت تناژ و عملکرد ====================
 class YieldRecordScreen extends StatefulWidget {
-  final Map<String, dynamic> land;
+  final RecordMap land;
   const YieldRecordScreen({super.key, required this.land});
 
   @override
@@ -972,7 +967,7 @@ class _YieldRecordScreenState extends State<YieldRecordScreen> {
 
 // ==================== ۷. صفحه آزمایشات آب، خاک و برگ ====================
 class LabTestsScreen extends StatefulWidget {
-  final Map<String, dynamic> land;
+  final RecordMap land;
   const LabTestsScreen({super.key, required this.land});
 
   @override
@@ -1111,7 +1106,7 @@ class _LabTestsScreenState extends State<LabTestsScreen> {
 
 // ==================== ۸. گزارش سالیانه تجمیعی ====================
 class AnnualReportScreen extends StatefulWidget {
-  final Map<String, dynamic> land;
+  final RecordMap land;
   const AnnualReportScreen({super.key, required this.land});
 
   @override
@@ -1120,7 +1115,7 @@ class AnnualReportScreen extends StatefulWidget {
 
 class _AnnualReportScreenState extends State<AnnualReportScreen> {
   int _selectedYear = Jalali.now().year;
-  Map<String, dynamic>? _summary;
+  RecordMap? _summary;
   bool _loading = true;
 
   @override
@@ -1301,7 +1296,7 @@ class _AnnualReportScreenState extends State<AnnualReportScreen> {
 
 // ==================== ۹. گزارش کل باغات ====================
 class GlobalAnnualReportScreen extends StatefulWidget {
-  final List> lands;
+  final List<RecordMap> lands;
   const GlobalAnnualReportScreen({super.key, required this.lands});
 
   @override
@@ -1311,7 +1306,7 @@ class GlobalAnnualReportScreen extends StatefulWidget {
 
 class _GlobalAnnualReportScreenState extends State<GlobalAnnualReportScreen> {
   int _selectedYear = Jalali.now().year;
-  Map<String, Map<String, dynamic>?> _allYields = {};
+  final Map<String, RecordMap?> _allYields = {};
   bool _loading = true;
 
   @override
@@ -1511,4 +1506,3 @@ class _AddLandScreenState extends State<AddLandScreen> {
     );
   }
 }
-
